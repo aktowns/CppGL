@@ -1,0 +1,27 @@
+[submodule "third/bullet3"]
+	path = third/bullet3
+	url = https://github.com/bulletphysics/bullet3.git
+[submodule "third/glfw"]
+	path = third/glfw
+	url = https://github.com/glfw/glfw.git
+[submodule "third/glm"]
+	path = third/glm
+	url = https://github.com/g-truc/glm.git
+[submodule "third/spdlog"]
+	path = third/spdlog
+	url = https://github.com/gabime/spdlog.git
+[submodule "third/assimp"]
+	path = third/assimp
+	url = https://github.com/assimp/assimp.git
+[submodule "third/freetype2"]
+	path = third/freetype2
+	url = http://git.sv.nongnu.org/r/freetype/freetype2.git
+[submodule "third/nanogui"]
+	path = third/nanogui
+	url = https://github.com/wjakob/nanogui.git
+[submodule "third/nuklear"]
+	path = third/nuklear
+	url = https://github.com/vurtun/nuklear.git
+[submodule "third/fmt"]
+	path = third/fmt
+	url = https://github.com/fmtlib/fmt.git

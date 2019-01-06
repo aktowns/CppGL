@@ -1,0 +1,35 @@
+#pragma once
+
+#include "Logger.h"
+#include "utils/Resource.h"
+#include "utils/FmtExtensions.h"
+
+#include <optional>
+
+template <class T>
+class Loader final : Logger
+{
+	std::map<std::string, T*> _cached{};
+	std::function<std::optional<T*>(Resource&, const Console&)> _fetch;
+public:
+	explicit Loader(std::function<std::optional<T*>(Resource&, const Console&)> fetch)
+		: Logger("loader"), _fetch(fetch) {}
+
+	std::optional<T*> Loader<T>::load(std::string path) 
+	{
+		auto cached = _cached.find(path);
+		if (cached == _cached.end())
+		{
+			console->debug("asset {} not in cache", path);
+			auto item = _fetch(Resource(path), console);
+			if (item.has_value())
+			{
+				_cached.insert(std::pair<std::string, T*>(path, item.value()));
+			}
+			return item;
+		}
+
+		return cached->second;
+	}
+};
+
