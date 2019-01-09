@@ -1,7 +1,6 @@
 #include "Model.h"
 #include "utils/FmtExtensions.h"
 
-#include <btBulletCollisionCommon.h>
 #include <glm/glm.hpp>
 #include <utility>
 

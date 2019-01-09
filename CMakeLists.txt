@@ -7,6 +7,20 @@ project ("CppGL")
 
 # set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/")
 
+# Force static linking
+set(CompilerFlags
+      CMAKE_CXX_FLAGS
+      CMAKE_CXX_FLAGS_DEBUG
+      CMAKE_CXX_FLAGS_RELEASE
+      CMAKE_C_FLAGS
+      CMAKE_C_FLAGS_DEBUG
+      CMAKE_C_FLAGS_RELEASE
+)
+
+foreach(CompilerFlag ${CompilerFlags})
+  string(REPLACE "/MD" "/MT" ${CompilerFlag} "${${CompilerFlag}}")
+endforeach()
+
 find_package(OpenGL REQUIRED)
 
 # Compile external dependencies 
@@ -20,10 +34,17 @@ set(ALL_LIBS
 	GLAD
 	assimp
 	freetype
-	BulletDynamics
-	BulletCollision
-	LinearMath
+	#BulletDynamics
+	#BulletCollision
+	#LinearMath
 	fmt-header-only
+	PhysX
+	PhysXExtensions
+	PhysXCharacterKinematic
+	PhysXCooking
+	PhysXFoundation
+	PhysXVehicle
+	PhysXPvdSDK
 )
 
 # Include sub-projects.

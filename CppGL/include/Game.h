@@ -8,10 +8,11 @@
 #include "Font.h"
 #include "Loader.h"
 #include "Texture.h"
+#include "PhysXSetup.h"
+#include "utils/DebugDrawer.h"
 
 #include <glm/glm.hpp>
 #include <GLFW/glfw3.h>
-#include <btBulletCollisionCommon.h>
 
 struct GameObject final
 {
@@ -35,6 +36,7 @@ class Game final : public Logger {
 	Loader<Shader> _shaderLoader;
 	Loader<Model> _modelLoader;
 	Loader<Texture> _textureLoader;
+	PhysXSetup _physx{};
 public:
 	Game();
 	void setup(GLFWwindow* window);

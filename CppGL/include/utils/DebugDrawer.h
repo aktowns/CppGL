@@ -3,10 +3,15 @@
 #include "Shader.h"
 #include "Loader.h"
 #include "Logger.h"
+#include "Config.h"
 
 #include <iostream>
-#include <btBulletDynamicsCommon.h>
+#include <vector>
 #include <glm/glm.hpp>
+
+#include <PxPhysics.h>
+#include <PxScene.h>
+#include <PxRenderBuffer.h>
 
 struct DebugPoint final
 {
@@ -14,13 +19,14 @@ struct DebugPoint final
 	float r, g, b;
 };
 
-class DebugDrawer final : public btIDebugDraw {
+class DebugDrawer final {
 	unsigned int _vao, _vbo;
 	std::vector<DebugPoint> _lines;
 	Shader* _debugShader;
-	int _debugMode;
+	physx::PxScene* _scene;
 public:
-	explicit DebugDrawer(Loader<Shader> shaderLoader): _vao(0), _vbo(0), _debugMode(DBG_DrawWireframe)
+	explicit DebugDrawer(Loader<Shader> shaderLoader, physx::PxScene* scene)
+		: _vao(0), _vbo(0), _scene(scene)
 	{
 		_debugShader = shaderLoader.load("debugline").value();
 	}
@@ -32,56 +38,36 @@ public:
 		_debugShader->setup();
 	}
 
-	void setDebugMode(int debugMode) override { _debugMode = debugMode;  }
-
-	int getDebugMode() const override
-	{
-		return _debugMode;
-	}
-	void drawLine(const btVector3 &from,
-		const btVector3 &to,
-		const btVector3 &color) override
+	void drawLine(const physx::PxVec3 &from, 
+		          const physx::PxVec3 &to, 
+		          const physx::PxU32 &color1,
+				  const physx::PxU32 &color2)
 	{
 		DebugPoint start{};
 		DebugPoint end{};
-		start.x = from.x();
-		start.y = from.y();
-		start.z = from.z();
-		start.r = color.x();
-		start.g = color.y();
-		start.b = color.z();
+		start.x = from.x;
+		start.y = from.y;
+		start.z = from.z;
+		start.r = static_cast<uint8_t>(color1 >> 16);
+		start.g = static_cast<uint8_t>(color1 >> 8);
+		start.b = static_cast<uint8_t>(color1);
 		_lines.push_back(start);
-		end.x = to.x();
-		end.y = to.y();
-		end.z = to.z();
-		end.r = color.x();
-		end.g = color.y();
-		end.b = color.z();
+		end.x = to.x;
+		end.y = to.y;
+		end.z = to.z;
+		end.r = static_cast<uint8_t>(color2 >> 16);
+		end.g = static_cast<uint8_t>(color2 >> 8);
+		end.b = static_cast<uint8_t>(color2);
 		_lines.push_back(end);
 	}
-	void draw3dText(const btVector3& location, const char* textString) override {}
-	void reportErrorWarning(const char *warningString) override
+	void linesFromScene()
 	{
-		std::cout << std::string(warningString) << std::endl;
-	};
-	void drawContactPoint(const btVector3& pointOnB, const btVector3& normalOnB, btScalar distance, int lifeTime, const btVector3& color) override
-	{
-		DebugPoint contact{};
-		contact.x = pointOnB.x();
-		contact.y = pointOnB.y();
-		contact.z = pointOnB.z();
-		contact.r = color.x();
-		contact.g = color.y();
-		contact.b = color.z();
-		DebugPoint contactEnd{};
-		contactEnd.x = pointOnB.x() * (distance / 10.0);
-		contactEnd.y = pointOnB.y() * (distance / 10.0);
-		contactEnd.z = pointOnB.z() * (distance / 10.0);
-		contactEnd.r = color.x();
-		contactEnd.g = color.y();
-		contactEnd.b = color.z();
-		_lines.push_back(contact);
-		_lines.push_back(contactEnd);
+		const physx::PxRenderBuffer& rb = _scene->getRenderBuffer();
+		for (physx::PxU32 i = 0; i < rb.getNbLines(); i++)
+		{
+			const physx::PxDebugLine& line = rb.getLines()[i];
+			drawLine(line.pos0, line.pos1, line.color0, line.color1);
+		}
 	}
 	void draw(Camera &camera) {
 		if (!_lines.empty()) {
@@ -99,7 +85,7 @@ public:
 			_debugShader->use();
 
 			const glm::mat4 view = camera.getViewMatrix();
-			const glm::mat4 projection = glm::perspective(glm::radians(camera.zoom()), 
+			const glm::mat4 projection = glm::perspective(glm::radians(camera.zoom()),
 				static_cast<float>(SCR_WIDTH) / static_cast<float>(SCR_HEIGHT), 0.1f, 100.0f);
 			_debugShader->setMat4("projection", projection);
 			_debugShader->setMat4("view", view);

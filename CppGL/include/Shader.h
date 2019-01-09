@@ -6,7 +6,6 @@
 #include <glad/glad.h>
 #include <glm/glm.hpp>
 #include <string>
-#include <utility>
 
 class Shader final : public Logger {
 	std::filesystem::path _fragmentShader;

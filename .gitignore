@@ -7,7 +7,6 @@
 *.slo
 *.lo
 *.o
-*.obj
 
 # Precompiled Headers
 *.gch
@@ -97,7 +96,6 @@ StyleCopReport.xml
 *_i.h
 *.ilk
 *.meta
-*.obj
 *.iobj
 *.pch
 *.pdb

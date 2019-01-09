@@ -14,8 +14,10 @@ include_directories(
 	${CMAKE_BINARY_DIR}/third/freetype2/include/
 	${THIRD}/spdlog/include/
 	${THIRD}/nuklear/
-	${THIRD}/bullet3/src/
-	${THIRD}/fmt/include
+	#${THIRD}/bullet3/src/
+	${THIRD}/fmt/include/
+	${THIRD}/PhysX/physx/include/
+	${THIRD}/PhysX/pxshared/include/
 	include/
 )
 
@@ -31,7 +33,7 @@ set(HEADERS
 	"include/Loader.h"
 	"include/utils/Resource.h"
 	"include/utils/FmtExtensions.h"
-	"include/utils/DebugDrawer.h"
+	#"include/utils/DebugDrawer.h"
 )
 
 set(SRCS
@@ -45,6 +47,7 @@ set(SRCS
 	"src/Game.cpp"
 	"src/utils/Resource.cpp"
 	"src_boilerplate/stb_image.cpp"
+	"src/PhysxSetup.cpp"
 )
 
 # Add source to this project's executable.

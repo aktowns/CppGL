@@ -2,6 +2,7 @@
 #include "Model.h"
 #include "Game.h"
 #include "Config.h"
+#include "utils/DebugDrawer.h"
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -130,7 +131,7 @@ int main()
 
 	if (GLAD_GL_KHR_debug) {
 		console->info("OpenGL debugging enabled");
-		glDebugMessageCallback(debugCallback, nullptr);
+		//glDebugMessageCallback(debugCallback, nullptr);
 	}
 	else {
 		console->error("OpenGL debugging not available");

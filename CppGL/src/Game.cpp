@@ -5,19 +5,22 @@
 #include "Font.h"
 #include "Config.h"
 #include "Loader.h"
-#include "utils/DebugDrawer.h"
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/glm.hpp>
 #include <glm/gtx/norm.hpp>
+#include <glm/gtc/quaternion.hpp>
+#include <glm/gtx/quaternion.hpp>
 #include <GLFW/glfw3.h>
 
 #include <string>
 
-#include <btBulletDynamicsCommon.h>
-
 #include <iostream>
 #include <stb_image.h>
+#include <PxPhysics.h>
+#include <foundation/PxMat44.h>
+#include <PxFoundation.h>
+#include <PxRigidDynamic.h>
 
 #define NK_INCLUDE_FIXED_TYPES
 #define NK_INCLUDE_STANDARD_IO
@@ -32,8 +35,15 @@
 #include <nuklear.h>
 #include "nuklear_glfw_gl3.h"
 
+#include "PhysXSetup.h"
+#include <PxPhysics.h>
+#include <PxScene.h>
+#include <PxRenderBuffer.h>
+#include "../../third/PhysX/kaplademo/source/kaplaDemo/PhysXMacros.h"
+
 using namespace std;
 using namespace glm;
+using namespace physx;
 
 #define MAX_VERTEX_BUFFER (512 * 1024)
 #define MAX_ELEMENT_BUFFER (128 * 1024)
@@ -142,8 +152,14 @@ vec3 cubePositions[] = {
     vec3( 1.3f, -2.0f, -2.5f),
     vec3( 1.5f,  2.0f, -2.5f),
     vec3( 1.5f,  0.2f, -1.5f),
-    vec3(-1.3f,  1.0f, -1.5f)
+    vec3(-1.3f,  1.0f, -1.2f),
+    vec3(-1.1f,  4.0f, -2.9f),
+    vec3(-0.6f,  3.0f, -0.9f),
+    vec3(-0.3f,  8.0f, -2.3f),
+    vec3(-5.2f,  1.5f, -12.5f),
+    vec3(-4.3f,  50.0f, -4.5f),
 };
+quat cubeRotations[15];
 
 vec3 pointLightPositions[] = {
     vec3( 0.7f,  0.2f,  2.0f),
@@ -197,7 +213,7 @@ float skyboxVertices[] = {
 	 1.0f, -1.0f,  1.0f
 };
 
-btDiscreteDynamicsWorld* dynamicsWorld;
+//btDiscreteDynamicsWorld* dynamicsWorld;
 
 Game::Game() :
 	Logger("game"),
@@ -207,12 +223,15 @@ Game::Game() :
 	_modelLoader(Model::fromResource),
 	_textureLoader(textureFromResource)
 {
+	
+	/*
 	const auto collisionConfiguration = new btDefaultCollisionConfiguration();
 	const auto dispatcher = new btCollisionDispatcher(collisionConfiguration);
 	btBroadphaseInterface* overlappingPairCache = new btDbvtBroadphase();
 	const auto solver = new btSequentialImpulseConstraintSolver;
 	dynamicsWorld = new btDiscreteDynamicsWorld(dispatcher, overlappingPairCache, solver, collisionConfiguration);
 	dynamicsWorld->setGravity(btVector3(0, -1.0, 0));
+	*/
 }
 
 struct nk_context *ctx;
@@ -222,11 +241,12 @@ DebugDrawer* drawer;
 
 void Game::setup(GLFWwindow* window)
 {
+	_physx.initPhysics();
 	console->info("Loading models");
 	auto _model = _modelLoader.load("nanosuit/nanosuit.obj").value();
 	auto _link = _modelLoader.load("link/link.obj").value();
-	_model->setup();
-	_link->setup();
+	//_model->setup();
+	//_link->setup();
 
 	console->info("Loading shaders");
 	auto _shader = _shaderLoader.load("shader").value();
@@ -320,14 +340,19 @@ void Game::setup(GLFWwindow* window)
     /*nk_style_load_all_cursors(ctx, atlas->cursors);*/
 /*nk_style_set_font(ctx, &droid->handle);*/}
 
-	drawer = new DebugDrawer(_shaderLoader);
+	
+	drawer = new DebugDrawer(_shaderLoader, _physx.scene);
 	drawer->setup();
-	drawer->setDebugMode(btIDebugDraw::DBG_DrawWireframe | btIDebugDraw::DBG_DrawContactPoints);
-	dynamicsWorld->setDebugDrawer(drawer);
+	_physx.stepPhysics(0);
 }
 
 auto clearColour = vec3(0.5f, 0.5f, 0.5f);
 auto doStep = false;
+bool showTextures = true;
+bool showPhysicsDebug = true;
+
+
+bool toggles[1024] = { false };
 
 void Game::processInput(GameObject& gameObject)
 {
@@ -347,9 +372,34 @@ void Game::processInput(GameObject& gameObject)
 	if (glfwGetKey(gameObject.window, GLFW_KEY_J) == GLFW_PRESS)
 		clearColour += 0.01;
 
-	if (glfwGetKey(gameObject.window, GLFW_KEY_SPACE) == GLFW_PRESS)
+	auto keyK = glfwGetKey(gameObject.window, GLFW_KEY_K);
+	if (keyK == GLFW_PRESS && !toggles[GLFW_KEY_K]) {
+		showTextures = !showTextures;
+		toggles[GLFW_KEY_K] = true;
+	}
+	else if (keyK == GLFW_RELEASE && toggles[GLFW_KEY_K]) {
+		toggles[GLFW_KEY_K] = false;
+	}
+
+	auto keyL = glfwGetKey(gameObject.window, GLFW_KEY_L);
+	if (keyL == GLFW_PRESS && !toggles[GLFW_KEY_L]) {
+		showPhysicsDebug = !showPhysicsDebug;
+		toggles[GLFW_KEY_L] = true;
+	}
+	else if (keyL == GLFW_RELEASE && toggles[GLFW_KEY_L]) {
+		toggles[GLFW_KEY_L] = false;
+	}
+	
+
+
+	auto keySpace = glfwGetKey(gameObject.window, GLFW_KEY_SPACE);
+	if (keySpace == GLFW_PRESS && !toggles[GLFW_KEY_SPACE])
 	{
 		doStep = !doStep;
+		toggles[GLFW_KEY_SPACE] = true;
+	}
+	else if (keySpace == GLFW_RELEASE && toggles[GLFW_KEY_SPACE]) {
+		toggles[GLFW_KEY_SPACE] = false;
 	}
 
 	if (glfwGetKey(gameObject.window, GLFW_KEY_C) == GLFW_PRESS) {
@@ -383,7 +433,8 @@ void Game::mouseButton(GLFWwindow* window, int button, int action, int mods)
 }
 
 bool once = true;
-btRigidBody* bodies[10];
+
+PxRigidDynamic* bodies[15];
 
 vec3 pointLightColours[] = {
 	vec3(0.0f, 0.0f, 0.0f),
@@ -392,9 +443,55 @@ vec3 pointLightColours[] = {
 	vec3(0.0f, 0.5f, 0.0f)
 };
 
+inline PxVec3 vec3ToPx(const vec3& in) { return PxVec3(in.x, in.y, in.z); }
+inline vec3 vec3ToGlm(const PxVec3& in) { return vec3(in.x, in.y, in.z); }
+inline PxQuat quatToPx(const quat& in) { return PxQuat(in.x, in.y, in.z, in.w); }
+inline quat quatToGlm(const PxQuat& in) { return quat(in.w, in.x, in.y, in.z); }
+inline PxMat44 mat44ToPx(const mat4& in) {
+	PxMat44 mat;
+	mat[0][0] = in[0][0];
+	mat[0][1] = in[0][1];
+	mat[0][2] = in[0][2];
+	mat[0][3] = in[0][3];
+	mat[1][0] = in[1][0];
+	mat[1][1] = in[1][1];
+	mat[1][2] = in[1][2];
+	mat[1][3] = in[1][3];
+	mat[2][0] = in[2][0];
+	mat[2][1] = in[2][1];
+	mat[2][2] = in[2][2];
+	mat[2][3] = in[2][3];
+	mat[3][0] = in[3][0];
+	mat[3][1] = in[3][1];
+	mat[3][2] = in[3][2];
+	mat[3][3] = in[3][3];
+	return mat;
+}
+inline mat4 mat44ToGlm(const PxMat44& in) {
+	mat4 mat;
+	mat[0][0] = in[0][0];
+	mat[0][1] = in[0][1];
+	mat[0][2] = in[0][2];
+	mat[0][3] = in[0][3];
+	mat[1][0] = in[1][0];
+	mat[1][1] = in[1][1];
+	mat[1][2] = in[1][2];
+	mat[1][3] = in[1][3];
+	mat[2][0] = in[2][0];
+	mat[2][1] = in[2][1];
+	mat[2][2] = in[2][2];
+	mat[2][3] = in[2][3];
+	mat[3][0] = in[3][0];
+	mat[3][1] = in[3][1];
+	mat[3][2] = in[3][2];
+	mat[3][3] = in[3][3];
+	return mat;
+}
+
+
 void Game::render(GameObject& gameObject) 
 {
-	dynamicsWorld->debugDrawWorld();
+	//dynamicsWorld->debugDrawWorld();
 
 	//auto _shader = _shaderLoader.load("shader").value();
 	auto _modelShader = _shaderLoader.load("model").value();
@@ -414,14 +511,16 @@ void Game::render(GameObject& gameObject)
 
 	glEnable(GL_DEPTH_TEST);
 
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, _textureLoader.load("container2.png").value()->id);
+	if (showTextures) {
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, _textureLoader.load("container2.png").value()->id);
 
-	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_2D, _textureLoader.load("container2_specular.png").value()->id);
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, _textureLoader.load("container2_specular.png").value()->id);
+	}
 
-	glActiveTexture(GL_TEXTURE2);
-	glBindTexture(GL_TEXTURE_2D, _textureLoader.load("awesomeface.png").value()->id);
+	//glActiveTexture(GL_TEXTURE2);
+	//glBindTexture(GL_TEXTURE_2D, _textureLoader.load("awesomeface.png").value()->id);
 
     _lightingShader->use();
     _lightingShader->setVec3("viewPos", _camera.position());
@@ -496,6 +595,7 @@ void Game::render(GameObject& gameObject)
 	//_shader->setMat4("projection", projection);
 	//_shader->setMat4("view", view);
 
+	/*
 	if (bodies[0])
 	{
 		btTransform trans;
@@ -507,8 +607,24 @@ void Game::render(GameObject& gameObject)
 			cubePositions[i].z = trans.getOrigin().z();
 		}
 	}
+	*/
 
 	if (once) {
+		for (unsigned int i = 0; i < 15; i++) {
+			//PxMat44 nvModel = PxMat44(PxIdentity);
+			//nvModel.transform(GlmtoPx(cubePositions[i]));
+
+			auto modelm = mat4(1.0f);
+			modelm = translate(modelm, cubePositions[i]);
+			auto angle = 20.0f * i;
+			modelm = rotate(modelm, radians(angle), vec3(1.0f, 0.3f, 0.5f));
+			auto m = quat_cast(modelm);
+			//physx::PxTransform localTm(physx::PxVec3(cubePositions[i].x, cubePositions[i].y, cubePositions[i].z));
+			//auto z = physx::PxTransform(m.x, m.y, m.z);
+			bodies[i] = _physx.createActor(PxTransform(mat44ToPx(modelm)));
+//				localTm.transform(z));
+		}
+		/*
 		btCollisionShape* groundShape = new btBoxShape(btVector3(btScalar(50.), btScalar(10.), btScalar(50.)));
 		btTransform groundTransform;
 		groundTransform.setIdentity();
@@ -545,7 +661,6 @@ void Game::render(GameObject& gameObject)
 			dynamicsWorld->addRigidBody(body);
 		}
 		// Crysis model physics (bounding box)
-		/*
 		mat4 modelm = mat4(1.0f);
 		modelm = translate(modelm, vec3(2.0f, -1.75f, 0.0f));
 		modelm = scale(modelm, vec3(0.2f, 0.2f, 0.2f));
@@ -565,13 +680,18 @@ void Game::render(GameObject& gameObject)
 		once = false;
 	}
 
+	for (unsigned int i = 0; i < 15; i++) {
+		PxRigidDynamic* body = bodies[i];
+		auto pose = body->getGlobalPose().p;
+		auto rota = body->getGlobalPose().q;
+		cubePositions[i] = vec3ToGlm(pose);
+		cubeRotations[i] = quatToGlm(rota);
+	}
+
 	glBindVertexArray(_vao);
-	for (unsigned int i = 0; i < 10; i++) {
-		auto modelm = mat4(1.0f);
-		modelm = translate(modelm, cubePositions[i]);
-		auto angle = 20.0f * i;
-		modelm = rotate(modelm, radians(angle), vec3(1.0f, 0.3f, 0.5f));
-		//_shader->setMat4("model", modelm);
+	for (unsigned int i = 0; i < 15; i++) {
+		auto modelm = translate(mat4(1.0f), cubePositions[i]) * toMat4(cubeRotations[i]);
+
 		_lightingShader->use();
 		_lightingShader->setMat4("model", modelm);
 
@@ -605,6 +725,7 @@ void Game::render(GameObject& gameObject)
 
     glBindVertexArray(0);
 
+	// Draw skybox
     glDepthFunc(GL_LEQUAL);  // change depth function so depth test passes when values are equal to depth buffer's content
     _skyboxShader->use();
     view = glm::mat4(glm::mat3(_camera.getViewMatrix())); // remove translation from the view matrix
@@ -617,7 +738,7 @@ void Game::render(GameObject& gameObject)
     glDrawArrays(GL_TRIANGLES, 0, 36);
     glBindVertexArray(0);
     glDepthFunc(GL_LESS); // set depth function back to default
-
+	// end draw skybox
 
 	glBindTexture(GL_TEXTURE_2D, 0);
 	/*
@@ -653,7 +774,10 @@ void Game::render(GameObject& gameObject)
 	_arial->draw(_textShader, "version: " + version, vec2(25.0f, SCR_HEIGHT - 75.0f), 1.0f, vec3(0.5f, 0.8f, 0.2f));
 	_arial->draw(_textShader, "fps: " + to_string(gameObject.frameRate), vec2(25.0f, SCR_HEIGHT - 25.0f), 1.0f, vec3(0.5f, 0.8f, 0.2f));
 
-	drawer->draw(_camera);
+	if (showPhysicsDebug) {
+		drawer->linesFromScene();
+		drawer->draw(_camera);
+	}
 
 	glDisable(GL_DEPTH_TEST);
 
@@ -676,8 +800,9 @@ void Game::render(GameObject& gameObject)
 }
 
 void Game::update(GameObject& gameObject) {
+	
 	if (doStep) {
-		dynamicsWorld->stepSimulation(1.0f / 60.0f, 10);
+		_physx.stepPhysics(gameObject.deltaTime);
 	}
 }
 

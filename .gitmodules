@@ -25,3 +25,6 @@
 [submodule "third/fmt"]
 	path = third/fmt
 	url = https://github.com/fmtlib/fmt.git
+[submodule "third/PhysX"]
+	path = third/PhysX
+	url = https://github.com/NVIDIAGameWorks/PhysX.git
