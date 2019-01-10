@@ -10,12 +10,12 @@ template <class T>
 class Loader final : Logger
 {
 	std::map<std::string, T*> _cached{};
-	std::function<std::optional<T*>(Resource&, const Console&)> _fetch;
+	std::function<std::optional<T*>(const Resource&, const Console&)> _fetch;
 public:
-	explicit Loader(std::function<std::optional<T*>(Resource&, const Console&)> fetch)
+	explicit Loader(std::function<std::optional<T*>(const Resource&, const Console&)> fetch)
 		: Logger("loader"), _fetch(fetch) {}
 
-	std::optional<T*> Loader<T>::load(std::string path) 
+	std::optional<T*> load(std::string path) 
 	{
 		auto cached = _cached.find(path);
 		if (cached == _cached.end())

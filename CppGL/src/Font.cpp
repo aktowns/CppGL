@@ -113,7 +113,7 @@ void Font::draw(const Shader *shader, string text, vec2 coOrd, const GLfloat sca
 	glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-Font* Font::fromResource(Resource& resource, const Console& console)
+optional<Font*> Font::fromResource(const Resource& resource, const Console& console)
 {
 	const auto base = filesystem::path("resources") / "fonts";
 	auto rSize = resource["size"];

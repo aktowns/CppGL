@@ -23,7 +23,7 @@ public:
     explicit Model(std::filesystem::path path, bool gamma = false);
 	void setup();
 	void draw(const Shader* shader);
-	static Model* Model::fromResource(Resource& resource, const Console& console);
+  static std::optional<Model*> fromResource(const Resource& resource, const Console& console);
 private:
 	void loadModel(std::filesystem::path const &path);
 	void processNode(aiNode *node, const aiScene *scene);

@@ -28,7 +28,7 @@ public:
 	void setVec3(const std::string &name, const glm::vec3 &value) const;
 	void setVec3(const std::string &name, float x, float y, float z) const;
 	void setMat4(const std::string &name, const glm::mat4 &mat) const;
-	static Shader* fromResource(Resource& resource, const Console& console);
+  static std::optional<Shader*> fromResource(const Resource& resource, const Console& console);
 
 	GLuint program() const
 	{

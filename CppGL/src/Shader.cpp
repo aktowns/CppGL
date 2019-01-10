@@ -113,7 +113,7 @@ void Shader::use() const
 	glUseProgram(_program);
 }
 
-Shader* Shader::fromResource(Resource& resource, const Console& console)
+optional<Shader*> Shader::fromResource(const Resource& resource, const Console& console)
 {
 	const auto base = filesystem::path("resources") / "shaders";
 

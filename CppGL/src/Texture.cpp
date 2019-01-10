@@ -46,7 +46,7 @@ unsigned int textureFromFile(const filesystem::path &filename, bool gamma) {
 	return textureId;
 }
 
-Texture* textureFromResource(Resource& resource, const Console& console)
+optional<Texture*> textureFromResource(const Resource& resource, const Console& console)
 {
 	const auto fn = filesystem::path("resources") / "textures" / resource.path();
 

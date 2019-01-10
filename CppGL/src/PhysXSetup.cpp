@@ -6,19 +6,27 @@
 
 using namespace physx;
 
+#ifndef _WINDOWS 
+#define aalloc(sz) memalign(16, sz)
+#define afree free
+#else
+#define aalloc(sz) _aligned_malloc(sz, 16)
+#define afree _aligned_free
+#endif
+
 class MyAllocator : public PxAllocatorCallback
 {
 public:
 	void* allocate(size_t size, const char*, const char*, int)
 	{
-		void* ptr = _aligned_malloc(size, 16);
+		void* ptr = aalloc(size);
 		PX_ASSERT((reinterpret_cast<size_t>(ptr) & 15)==0);
 		return ptr;
 	}
 
 	void deallocate(void* ptr)
 	{
-		_aligned_free(ptr);
+		afree(ptr);
 	}
 };
 

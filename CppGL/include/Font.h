@@ -30,6 +30,6 @@ public:
 
 	void setup();
 	void draw(const Shader *shader, std::string text, glm::vec2 coOrd, GLfloat scale, glm::vec3 color);
-	static Font* fromResource(Resource& resource, const Console& console);
+  static std::optional<Font*> fromResource(const Resource& resource, const Console& console);
 };
 

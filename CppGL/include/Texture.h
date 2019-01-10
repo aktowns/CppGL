@@ -12,4 +12,4 @@ struct Texture final
 
 unsigned int textureFromFile(const std::filesystem::path &filename, bool gamma = false);
 
-Texture* textureFromResource(Resource& resource, const Console& console);
+std::optional<Texture*> textureFromResource(const Resource& resource, const Console& console);

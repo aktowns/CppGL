@@ -45,6 +45,7 @@ set(ALL_LIBS
 	PhysXFoundation
 	PhysXVehicle
 	PhysXPvdSDK
+  stdc++fs
 )
 
 # Include sub-projects.

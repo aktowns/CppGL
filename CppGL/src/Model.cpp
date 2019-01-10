@@ -171,7 +171,7 @@ vector<MeshTexture> Model::loadMaterialTextures(aiMaterial * mat, const aiTextur
 	return textures;
 }
 
-Model* Model::fromResource(Resource& resource, const Console& console)
+optional<Model*> Model::fromResource(const Resource& resource, const Console& console)
 {
 	const auto fn = filesystem::path("resources") / "models" / resource.path();
 	

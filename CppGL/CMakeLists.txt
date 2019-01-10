@@ -47,10 +47,11 @@ set(SRCS
 	"src/Game.cpp"
 	"src/utils/Resource.cpp"
 	"src_boilerplate/stb_image.cpp"
-	"src/PhysxSetup.cpp"
+	"src/PhysXSetup.cpp"
 )
 
 # Add source to this project's executable.
+add_definitions(-D_DEBUG)
 add_executable (CppGL ${SRCS} ${HEADERS})
 target_link_libraries(CppGL ${ALL_LIBS})
 set_property(TARGET CppGL PROPERTY CXX_STANDARD 17)
