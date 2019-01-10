@@ -1,6 +1,3 @@
-[submodule "third/bullet3"]
-	path = third/bullet3
-	url = https://github.com/bulletphysics/bullet3.git
 [submodule "third/glfw"]
 	path = third/glfw
 	url = https://github.com/glfw/glfw.git
