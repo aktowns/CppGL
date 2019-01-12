@@ -25,3 +25,9 @@
 [submodule "third/PhysX"]
 	path = third/PhysX
 	url = https://github.com/NVIDIAGameWorks/PhysX.git
+[submodule "third/lua/src"]
+	path = third/lua/src
+	url = https://github.com/lua/lua.git
+[submodule "third/entt"]
+	path = third/entt
+	url = https://github.com/skypjack/entt.git
