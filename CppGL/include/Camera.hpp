@@ -1,8 +1,9 @@
 #pragma once
 
-#include "Logger.h"
-
 #include <glad/glad.h>
+
+#include "Logger.hpp"
+
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -82,6 +83,11 @@ public:
 	const glm::vec3& position() const
 	{
 		return _position;
+	}
+
+	void setPosition(const glm::vec3& position)
+	{
+		_position = position;
 	}
 
 	const glm::vec3& front() const

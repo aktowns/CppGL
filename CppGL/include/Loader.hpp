@@ -1,8 +1,8 @@
 #pragma once
 
-#include "Logger.h"
-#include "utils/Resource.h"
-#include "utils/FmtExtensions.h"
+#include "Logger.hpp"
+#include "utils/Resource.hpp"
+#include "utils/FmtExtensions.hpp"
 
 #include <optional>
 

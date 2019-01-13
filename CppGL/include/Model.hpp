@@ -7,10 +7,10 @@
 #include <assimp/postprocess.h>
 #include <spdlog/spdlog.h>
 
-#include "Mesh.h"
-#include "Shader.h"
-#include "Logger.h"
-#include "Model.h"
+#include "Mesh.hpp"
+#include "Shader.hpp"
+#include "Logger.hpp"
+#include "Model.hpp"
 
 class Model final : public Logger {
     const std::filesystem::path _path;
@@ -21,7 +21,6 @@ public:
 	bool gammaCorrection;
 
     explicit Model(std::filesystem::path path, bool gamma = false);
-	void setup();
 	void draw(const Shader* shader);
   static std::optional<Model*> fromResource(const Resource& resource, const Console& console);
 private:

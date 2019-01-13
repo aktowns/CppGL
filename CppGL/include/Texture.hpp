@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Loader.h"
-#include "Logger.h"
+#include "Loader.hpp"
+#include "Logger.hpp"
 
 #include <filesystem>
 

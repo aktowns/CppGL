@@ -1,10 +1,12 @@
-#include "Game.h"
+#include "Game.hpp"
 
-#include "Model.h"
-#include "Shader.h"
-#include "Font.h"
-#include "Config.h"
-#include "Loader.h"
+#include "Model.hpp"
+#include "Shader.hpp"
+#include "Font.hpp"
+#include "Config.hpp"
+#include "Loader.hpp"
+#include "Icosphere.hpp"
+#include "utils/Conversions.hpp"
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/glm.hpp>
@@ -17,75 +19,21 @@
 
 #include <iostream>
 #include <stb_image.h>
+
+#include "GameUI.hpp"
+
 #include <PxPhysics.h>
 #include <foundation/PxMat44.h>
+#include <PxScene.h>
+#include <PxRenderBuffer.h>
 #include <PxFoundation.h>
 #include <PxRigidDynamic.h>
 
-#define NK_INCLUDE_FIXED_TYPES
-#define NK_INCLUDE_STANDARD_IO
-#define NK_INCLUDE_STANDARD_VARARGS
-#define NK_INCLUDE_DEFAULT_ALLOCATOR
-#define NK_INCLUDE_VERTEX_BUFFER_OUTPUT
-#define NK_INCLUDE_FONT_BAKING
-#define NK_INCLUDE_DEFAULT_FONT
-#define NK_IMPLEMENTATION
-#define NK_GLFW_GL3_IMPLEMENTATION
-#define NK_KEYSTATE_BASED_INPUT
-#include <nuklear.h>
-#include "nuklear_glfw_gl3.h"
-
-#include "PhysXSetup.h"
-#include <PxPhysics.h>
-#include <PxScene.h>
-#include <PxRenderBuffer.h>
-#include "../../third/PhysX/kaplademo/source/kaplaDemo/PhysXMacros.h"
+#include "PhysXSetup.hpp"
 
 using namespace std;
 using namespace glm;
 using namespace physx;
-
-#define MAX_VERTEX_BUFFER (512 * 1024)
-#define MAX_ELEMENT_BUFFER (128 * 1024)
-
-unsigned int loadCubemap(vector<string> faces)
-{
-	unsigned int textureId;
-	glGenTextures(1, &textureId);
-	glBindTexture(GL_TEXTURE_CUBE_MAP, textureId);
-
-	int width, height, nrChannels;
-	for (auto i =0; i < faces.size(); i++)
-	{
-		cout << "loading: " << faces[i] << endl;
-		unsigned char* data = stbi_load(faces[i].c_str(), &width, &height, &nrChannels, 0);
-		if (data)
-		{
-			GLenum format;
-			if (nrChannels == 1)
-				format = GL_RED;
-			else if (nrChannels == 3)
-				format = GL_RGB;
-			else if (nrChannels == 4)
-				format = GL_RGBA;
-
-			glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
-				0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
-			stbi_image_free(data);
-		}
-		else
-		{
-			cout << "failed to load cubemap: " << faces[i] << endl;
-		}
-	}
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-
-	return textureId;
-}
 
 vector<std::string> cubeMapFaces
 {
@@ -154,10 +102,10 @@ vec3 cubePositions[] = {
     vec3( 1.5f,  0.2f, -1.5f),
     vec3(-1.3f,  1.0f, -1.2f),
     vec3(-1.1f,  4.0f, -2.9f),
-    vec3(-0.6f,  3.0f, -0.9f),
+    vec3(0.0f,  -200.0f, 0.0f),
     vec3(-0.3f,  8.0f, -2.3f),
     vec3(-5.2f,  1.5f, -12.5f),
-    vec3(-4.3f,  50.0f, -4.5f),
+    vec3(-4.3f, -100.0f, -4.5f),
 };
 quat cubeRotations[15];
 
@@ -168,100 +116,43 @@ vec3 pointLightPositions[] = {
     vec3( 0.0f,  0.0f, -3.0f)
 };
 
-float skyboxVertices[] = {
-	// positions          
-	-1.0f,  1.0f, -1.0f,
-	-1.0f, -1.0f, -1.0f,
-	 1.0f, -1.0f, -1.0f,
-	 1.0f, -1.0f, -1.0f,
-	 1.0f,  1.0f, -1.0f,
-	-1.0f,  1.0f, -1.0f,
-
-	-1.0f, -1.0f,  1.0f,
-	-1.0f, -1.0f, -1.0f,
-	-1.0f,  1.0f, -1.0f,
-	-1.0f,  1.0f, -1.0f,
-	-1.0f,  1.0f,  1.0f,
-	-1.0f, -1.0f,  1.0f,
-
-	 1.0f, -1.0f, -1.0f,
-	 1.0f, -1.0f,  1.0f,
-	 1.0f,  1.0f,  1.0f,
-	 1.0f,  1.0f,  1.0f,
-	 1.0f,  1.0f, -1.0f,
-	 1.0f, -1.0f, -1.0f,
-
-	-1.0f, -1.0f,  1.0f,
-	-1.0f,  1.0f,  1.0f,
-	 1.0f,  1.0f,  1.0f,
-	 1.0f,  1.0f,  1.0f,
-	 1.0f, -1.0f,  1.0f,
-	-1.0f, -1.0f,  1.0f,
-
-	-1.0f,  1.0f, -1.0f,
-	 1.0f,  1.0f, -1.0f,
-	 1.0f,  1.0f,  1.0f,
-	 1.0f,  1.0f,  1.0f,
-	-1.0f,  1.0f,  1.0f,
-	-1.0f,  1.0f, -1.0f,
-
-	-1.0f, -1.0f, -1.0f,
-	-1.0f, -1.0f,  1.0f,
-	 1.0f, -1.0f, -1.0f,
-	 1.0f, -1.0f, -1.0f,
-	-1.0f, -1.0f,  1.0f,
-	 1.0f, -1.0f,  1.0f
-};
-
-//btDiscreteDynamicsWorld* dynamicsWorld;
-
 Game::Game() :
-	Logger("game"),
-	_camera(glm::vec3(0.0f, 0.0f, 3.0f)),
-	_fontLoader(Font::fromResource),
-	_shaderLoader(Shader::fromResource),
-	_modelLoader(Model::fromResource),
-	_textureLoader(textureFromResource)
+    Logger("game"),
+    _camera(glm::vec3(0.0f, 0.0f, 3.0f)),
+    _fontLoader(Font::fromResource),
+    _shaderLoader(Shader::fromResource),
+    _modelLoader(Model::fromResource),
+    _textureLoader(textureFromResource),
+    _skybox(Skybox(cubeMapFaces, _shaderLoader))
 {
-	
-	/*
-	const auto collisionConfiguration = new btDefaultCollisionConfiguration();
-	const auto dispatcher = new btCollisionDispatcher(collisionConfiguration);
-	btBroadphaseInterface* overlappingPairCache = new btDbvtBroadphase();
-	const auto solver = new btSequentialImpulseConstraintSolver;
-	dynamicsWorld = new btDiscreteDynamicsWorld(dispatcher, overlappingPairCache, solver, collisionConfiguration);
-	dynamicsWorld->setGravity(btVector3(0, -1.0, 0));
-	*/
+
 }
 
-struct nk_context *ctx;
 DebugDrawer* drawer;
 
-#define DEFAULT_FONT "arial.ttf?size=18"
+vector<vec3> icospherePos{};
+vector<uint32> icosphereIndex{};
 
 void Game::setup(GLFWwindow* window)
 {
+	generateIcosphereMesh(5, icosphereIndex, icospherePos);
+	console->info("icosphere has {} indexes and {} vertices", icosphereIndex.size(), icospherePos.size());
 	_physx.initPhysics();
 	console->info("Loading models");
-	auto _model = _modelLoader.load("nanosuit/nanosuit.obj").value();
-	auto _link = _modelLoader.load("link/link.obj").value();
+	//auto _model = _modelLoader.load("nanosuit/nanosuit.obj").value();
+	//auto _link = _modelLoader.load("link/link.obj").value();
 	//_model->setup();
 	//_link->setup();
+    _modelLoader.load("spaceship/spaceship.fbx");
+	//auto _spacetruck = _modelLoader.load("nanosuit/nanosuit.obj").value();
 
 	console->info("Loading shaders");
-	auto _shader = _shaderLoader.load("shader").value();
-	auto _modelShader = _shaderLoader.load("model").value();
-	auto _textShader = _shaderLoader.load("text").value();
-	auto _lightingShader = _shaderLoader.load("multiple_lights").value();
-	auto _lampShader = _shaderLoader.load("lamp").value();
-	auto _skyboxShader = _shaderLoader.load("skybox").value();
-
-	_lampShader->setup();
-	_lightingShader->setup();
-	_textShader->setup();
-	_modelShader->setup();
-	_shader->setup();
-	_skyboxShader->setup();
+    const auto shader = _shaderLoader.load("shader").value();
+	_shaderLoader.load("model");
+	_shaderLoader.load("text");
+    const auto lightingShader = _shaderLoader.load("multiple_lights").value();
+	_shaderLoader.load("lamp");
+	_shaderLoader.load("basic");
 
 	console->info("Loading fonts");
 	_fontLoader.load(DEFAULT_FONT).value()->setup();
@@ -269,17 +160,20 @@ void Game::setup(GLFWwindow* window)
 	glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
 	glEnable(GL_MULTISAMPLE);
 
-	// Load skybox
-    glGenVertexArrays(1, &_skyboxVao);
-    glGenBuffers(1, &_skyboxVbo);
-    glBindVertexArray(_skyboxVao);
-    glBindBuffer(GL_ARRAY_BUFFER, _skyboxVbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices), &skyboxVertices, GL_STATIC_DRAW);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-	_skyboxTexture = loadCubemap(cubeMapFaces);
+	glGenVertexArrays(1, &_icosphereVao);
+	glGenBuffers(1, &_icosphereVbo);
+	glGenBuffers(1, &_icosphereEbo);
+	glBindVertexArray(_icosphereVao);
 
-	// 
+	glBindBuffer(GL_ARRAY_BUFFER, _icosphereVbo);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 3 * icospherePos.size(), &icospherePos[0], GL_STATIC_DRAW);
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _icosphereEbo);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * icosphereIndex.size(), &icosphereIndex[0], GL_STATIC_DRAW);
+
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), nullptr);
+	glEnableVertexAttribArray(0);
+	//
 
 	glGenVertexArrays(1, &_vao);
 	glGenBuffers(1, &_vbo);
@@ -310,40 +204,34 @@ void Game::setup(GLFWwindow* window)
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
 
-
 	//auto texture1 = _textureLoader.load("container.png");
 	auto texture1 = _textureLoader.load("container2.png");
 	_textureLoader.load("container2_specular.png");
 	auto texture2 = _textureLoader.load("awesomeface.png");
 
-	_shader->use();
-	_shader->setInt("texture1", texture1.value()->id);
-	_shader->setInt("texture2", texture2.value()->id);
+	shader->use();
+	shader->setInt("texture1", texture1.value()->id);
+	shader->setInt("texture2", texture2.value()->id);
 
-    _skyboxShader->use();
-    _skyboxShader->setInt("skybox", 0);
+    lightingShader->use();
+    lightingShader->setInt("material.diffuse", 0);
+    lightingShader->setInt("material.specular", 1);
 
-    _lightingShader->use();
-    _lightingShader->setInt("material.diffuse", 0);
-    _lightingShader->setInt("material.specular", 1);
-    ctx = nk_glfw3_init(window, NK_GLFW3_DEFAULT);
-
-	{struct nk_font_atlas *atlas;
-    nk_glfw3_font_stash_begin(&atlas);
+    // UI
+    _ui = new GameUI(window);
+    struct nk_font_atlas *atlas;
+    _ui->fontStashBegin(&atlas);
     /*struct nk_font *droid = nk_font_atlas_add_from_file(atlas, "../../../extra_font/DroidSans.ttf", 14, 0);*/
     /*struct nk_font *roboto = nk_font_atlas_add_from_file(atlas, "../../../extra_font/Roboto-Regular.ttf", 14, 0);*/
     /*struct nk_font *future = nk_font_atlas_add_from_file(atlas, "../../../extra_font/kenvector_future_thin.ttf", 13, 0);*/
     /*struct nk_font *clean = nk_font_atlas_add_from_file(atlas, "../../../extra_font/ProggyClean.ttf", 12, 0);*/
     /*struct nk_font *tiny = nk_font_atlas_add_from_file(atlas, "../../../extra_font/ProggyTiny.ttf", 10, 0);*/
     /*struct nk_font *cousine = nk_font_atlas_add_from_file(atlas, "../../../extra_font/Cousine-Regular.ttf", 13, 0);*/
-    nk_glfw3_font_stash_end();
-    /*nk_style_load_all_cursors(ctx, atlas->cursors);*/
-/*nk_style_set_font(ctx, &droid->handle);*/}
-
+    _ui->fontStashEnd();
 	
+    // Physx Debug
 	drawer = new DebugDrawer(_shaderLoader, _physx.scene);
 	drawer->setup();
-	_physx.stepPhysics(0);
 }
 
 auto clearColour = vec3(0.5f, 0.5f, 0.5f);
@@ -351,13 +239,16 @@ auto doStep = false;
 bool showTextures = true;
 bool showPhysicsDebug = true;
 
-
 bool toggles[1024] = { false };
+
+PxRigidDynamic* cameraBody;
 
 void Game::processInput(GameObject& gameObject)
 {
-	if (glfwGetKey(gameObject.window, GLFW_KEY_W) == GLFW_PRESS)
+	if (glfwGetKey(gameObject.window, GLFW_KEY_W) == GLFW_PRESS) {
+		//cameraBody->getGlobalPose().transform(PxVec3(0, 1, 0));
 		_camera.processKeyboard(CameraMovement::Forward, gameObject.deltaTime);
+	}
 	if (glfwGetKey(gameObject.window, GLFW_KEY_S) == GLFW_PRESS)
 		_camera.processKeyboard(CameraMovement::Backward, gameObject.deltaTime);
 	if (glfwGetKey(gameObject.window, GLFW_KEY_A) == GLFW_PRESS)
@@ -389,8 +280,6 @@ void Game::processInput(GameObject& gameObject)
 	else if (keyL == GLFW_RELEASE && toggles[GLFW_KEY_L]) {
 		toggles[GLFW_KEY_L] = false;
 	}
-	
-
 
 	auto keySpace = glfwGetKey(gameObject.window, GLFW_KEY_SPACE);
 	if (keySpace == GLFW_PRESS && !toggles[GLFW_KEY_SPACE])
@@ -424,12 +313,12 @@ void Game::mouseMoved(GLFWwindow * window, glm::dvec2 pos, glm::dvec2 offset)
 void Game::mouseScrolled(GLFWwindow * window, glm::dvec2 offset)
 {
 	_camera.processMouseScroll(static_cast<float>(offset.y));
-	nk_gflw3_scroll_callback(window, offset.x, offset.y);
+    _ui->scrollCallback(window, offset.x, offset.y);
 }
 
 void Game::mouseButton(GLFWwindow* window, int button, int action, int mods)
 {
-	nk_glfw3_mouse_button_callback(window, button, action, mods);
+    _ui->mouseButtonCallback(window, button, action, mods);
 }
 
 bool once = true;
@@ -443,68 +332,22 @@ vec3 pointLightColours[] = {
 	vec3(0.0f, 0.5f, 0.0f)
 };
 
-inline PxVec3 vec3ToPx(const vec3& in) { return PxVec3(in.x, in.y, in.z); }
-inline vec3 vec3ToGlm(const PxVec3& in) { return vec3(in.x, in.y, in.z); }
-inline PxQuat quatToPx(const quat& in) { return PxQuat(in.x, in.y, in.z, in.w); }
-inline quat quatToGlm(const PxQuat& in) { return quat(in.w, in.x, in.y, in.z); }
-inline PxMat44 mat44ToPx(const mat4& in) {
-	PxMat44 mat;
-	mat[0][0] = in[0][0];
-	mat[0][1] = in[0][1];
-	mat[0][2] = in[0][2];
-	mat[0][3] = in[0][3];
-	mat[1][0] = in[1][0];
-	mat[1][1] = in[1][1];
-	mat[1][2] = in[1][2];
-	mat[1][3] = in[1][3];
-	mat[2][0] = in[2][0];
-	mat[2][1] = in[2][1];
-	mat[2][2] = in[2][2];
-	mat[2][3] = in[2][3];
-	mat[3][0] = in[3][0];
-	mat[3][1] = in[3][1];
-	mat[3][2] = in[3][2];
-	mat[3][3] = in[3][3];
-	return mat;
-}
-inline mat4 mat44ToGlm(const PxMat44& in) {
-	mat4 mat;
-	mat[0][0] = in[0][0];
-	mat[0][1] = in[0][1];
-	mat[0][2] = in[0][2];
-	mat[0][3] = in[0][3];
-	mat[1][0] = in[1][0];
-	mat[1][1] = in[1][1];
-	mat[1][2] = in[1][2];
-	mat[1][3] = in[1][3];
-	mat[2][0] = in[2][0];
-	mat[2][1] = in[2][1];
-	mat[2][2] = in[2][2];
-	mat[2][3] = in[2][3];
-	mat[3][0] = in[3][0];
-	mat[3][1] = in[3][1];
-	mat[3][2] = in[3][2];
-	mat[3][3] = in[3][3];
-	return mat;
-}
-
-
 void Game::render(GameObject& gameObject) 
 {
-	//dynamicsWorld->debugDrawWorld();
+	auto _shader = _shaderLoader.load("shader").value();
+	auto modelShader = _shaderLoader.load("model").value();
+	auto textShader = _shaderLoader.load("text").value();
+	auto lightingShader = _shaderLoader.load("multiple_lights").value();
+	auto lampShader = _shaderLoader.load("lamp").value();
+	//auto _model = _modelLoader.load("nanosuit/nanosuit.obj").value();
+	//auto _link = _modelLoader.load("link/link.obj").value();
+	//auto _spacetruck = _modelLoader.load("nanosuit/nanosuit.obj").value();
+	auto spacetruck = _modelLoader.load("spaceship/spaceship.fbx").value();
+	auto basic = _shaderLoader.load("basic").value();
 
-	//auto _shader = _shaderLoader.load("shader").value();
-	auto _modelShader = _shaderLoader.load("model").value();
-	auto _textShader = _shaderLoader.load("text").value();
-	auto _lightingShader = _shaderLoader.load("multiple_lights").value();
-	auto _lampShader = _shaderLoader.load("lamp").value();
-	auto _skyboxShader = _shaderLoader.load("skybox").value();
-	auto _model = _modelLoader.load("nanosuit/nanosuit.obj").value();
-	auto _link = _modelLoader.load("link/link.obj").value();
-
-	string version(reinterpret_cast<const char*>(glGetString(GL_VERSION)));
-	string vendor(reinterpret_cast<const char*>(glGetString(GL_VENDOR)));
-	string renderer(reinterpret_cast<const char*>(glGetString(GL_RENDERER)));
+    const string version(reinterpret_cast<const char*>(glGetString(GL_VERSION)));
+    const string vendor(reinterpret_cast<const char*>(glGetString(GL_VENDOR)));
+    const string renderer(reinterpret_cast<const char*>(glGetString(GL_RENDERER)));
 
     glClearColor(clearColour.x, clearColour.y, clearColour.z, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -519,56 +362,78 @@ void Game::render(GameObject& gameObject)
 		glBindTexture(GL_TEXTURE_2D, _textureLoader.load("container2_specular.png").value()->id);
 	}
 
+	// Use camera object to navigate the scene
+	auto view = _camera.getViewMatrix();
+	auto projection = perspective(radians(_camera.zoom())
+		, static_cast<float>(SCR_WIDTH) / static_cast<float>(SCR_HEIGHT), 0.1f, 100.0f);
+
+    const auto render = RenderObject(view, projection);
+
+	basic->use();
+	basic->setMat4("projection", projection);
+	basic->setMat4("view", view);
+	basic->setFloat("unDT", gameObject.deltaTime);
+	basic->setVec3("unColor", vec3(1.0, 1.0, 1.0));
+	basic->setVec3("unCenterDir", vec3(0, 0, 0));
+	basic->setFloat("unRadius", 0.3f);
+	glBindVertexArray(_icosphereVao);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _icosphereEbo);
+	glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(icosphereIndex.size()), GL_UNSIGNED_INT, nullptr);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+	auto icom = mat4(1.0f);
+	icom = glm::translate(icom, vec3(10.0, 10.0, 10.0));
+	basic->setMat4("model", icom);
+
 	//glActiveTexture(GL_TEXTURE2);
 	//glBindTexture(GL_TEXTURE_2D, _textureLoader.load("awesomeface.png").value()->id);
 
-    _lightingShader->use();
-    _lightingShader->setVec3("viewPos", _camera.position());
-    _lightingShader->setFloat("material.shininess", 32.0f);
+    lightingShader->use();
+    lightingShader->setVec3("viewPos", _camera.position());
+    lightingShader->setFloat("material.shininess", 32.0f);
 
     // directional light
-    _lightingShader->setVec3("dirLight.direction", -0.2f, -1.0f, -0.3f);
-    _lightingShader->setVec3("dirLight.ambient", 0.05f, 0.05f, 0.05f);
-    _lightingShader->setVec3("dirLight.diffuse", 0.4f, 0.4f, 0.4f);
-    _lightingShader->setVec3("dirLight.specular", 0.5f, 0.5f, 0.5f);
+    lightingShader->setVec3("dirLight.direction", -0.2f, -1.0f, -0.3f);
+    lightingShader->setVec3("dirLight.ambient", 0.05f, 0.05f, 0.05f);
+    lightingShader->setVec3("dirLight.diffuse", 0.4f, 0.4f, 0.4f);
+    lightingShader->setVec3("dirLight.specular", 0.5f, 0.5f, 0.5f);
     // point light 1
-    _lightingShader->setVec3("pointLights[0].position", pointLightPositions[0]);
-	_lightingShader->setVec3("pointLights[0].ambient", pointLightColours[0].x,
+    lightingShader->setVec3("pointLights[0].position", pointLightPositions[0]);
+	lightingShader->setVec3("pointLights[0].ambient", pointLightColours[0].x,
 		pointLightColours[0].y, pointLightColours[0].z);
     //_lightingShader->setVec3("pointLights[0].ambient", 0.55f, 0.05f, 0.05f);
-    _lightingShader->setVec3("pointLights[0].diffuse", 0.8f, 0.8f, 0.8f);
-    _lightingShader->setVec3("pointLights[0].specular", 1.0f, 1.0f, 1.0f);
-    _lightingShader->setFloat("pointLights[0].constant", 1.0f);
-    _lightingShader->setFloat("pointLights[0].linear", 0.22);
-    _lightingShader->setFloat("pointLights[0].quadratic", 0.020);
+    lightingShader->setVec3("pointLights[0].diffuse", 0.8f, 0.8f, 0.8f);
+    lightingShader->setVec3("pointLights[0].specular", 1.0f, 1.0f, 1.0f);
+    lightingShader->setFloat("pointLights[0].constant", 1.0f);
+    lightingShader->setFloat("pointLights[0].linear", 0.22f);
+    lightingShader->setFloat("pointLights[0].quadratic", 0.020f);
 	// point light 2
-    _lightingShader->setVec3("pointLights[1].position", pointLightPositions[1]);
-	_lightingShader->setVec3("pointLights[1].ambient", pointLightColours[1].x,
+    lightingShader->setVec3("pointLights[1].position", pointLightPositions[1]);
+	lightingShader->setVec3("pointLights[1].ambient", pointLightColours[1].x,
 		pointLightColours[1].y, pointLightColours[1].z);
     //_lightingShader->setVec3("pointLights[1].ambient", 0.05f, 0.05f, 0.05f);
-    _lightingShader->setVec3("pointLights[1].diffuse", 0.8f, 0.8f, 0.8f);
-    _lightingShader->setVec3("pointLights[1].specular", 1.0f, 1.0f, 1.0f);
-    _lightingShader->setFloat("pointLights[1].constant", 1.0f);
-    _lightingShader->setFloat("pointLights[1].linear", 0.09);
-    _lightingShader->setFloat("pointLights[1].quadratic", 0.032);
+    lightingShader->setVec3("pointLights[1].diffuse", 0.8f, 0.8f, 0.8f);
+    lightingShader->setVec3("pointLights[1].specular", 1.0f, 1.0f, 1.0f);
+    lightingShader->setFloat("pointLights[1].constant", 1.0f);
+    lightingShader->setFloat("pointLights[1].linear", 0.09f);
+    lightingShader->setFloat("pointLights[1].quadratic", 0.032f);
     // point light 3
-    _lightingShader->setVec3("pointLights[2].position", pointLightPositions[2]);
+    lightingShader->setVec3("pointLights[2].position", pointLightPositions[2]);
     //_lightingShader->setVec3("pointLights[2].ambient", 0.05f, 0.05f, 0.05f);
-	_lightingShader->setVec3("pointLights[2].ambient", pointLightColours[2].x,
+	lightingShader->setVec3("pointLights[2].ambient", pointLightColours[2].x,
 		pointLightColours[2].y, pointLightColours[2].z);
-    _lightingShader->setVec3("pointLights[2].diffuse", 0.8f, 0.8f, 0.8f);
-    _lightingShader->setVec3("pointLights[2].specular", 1.0f, 1.0f, 1.0f);
-    _lightingShader->setFloat("pointLights[2].constant", 1.0f);
-    _lightingShader->setFloat("pointLights[2].linear", 0.09);
-    _lightingShader->setFloat("pointLights[2].quadratic", 0.032);
+    lightingShader->setVec3("pointLights[2].diffuse", 0.8f, 0.8f, 0.8f);
+    lightingShader->setVec3("pointLights[2].specular", 1.0f, 1.0f, 1.0f);
+    lightingShader->setFloat("pointLights[2].constant", 1.0f);
+    lightingShader->setFloat("pointLights[2].linear", 0.09f);
+    lightingShader->setFloat("pointLights[2].quadratic", 0.032f);
     // point light 4
-    _lightingShader->setVec3("pointLights[3].position", pointLightPositions[3]);
-    _lightingShader->setVec3("pointLights[3].ambient", 0.05f, 0.05f, 0.05f);
-    _lightingShader->setVec3("pointLights[3].diffuse", 0.8f, 0.8f, 0.8f);
-    _lightingShader->setVec3("pointLights[3].specular", 1.0f, 1.0f, 1.0f);
-    _lightingShader->setFloat("pointLights[3].constant", 1.0f);
-    _lightingShader->setFloat("pointLights[3].linear", 0.09);
-    _lightingShader->setFloat("pointLights[3].quadratic", 0.032);
+    lightingShader->setVec3("pointLights[3].position", pointLightPositions[3]);
+    lightingShader->setVec3("pointLights[3].ambient", 0.05f, 0.05f, 0.05f);
+    lightingShader->setVec3("pointLights[3].diffuse", 0.8f, 0.8f, 0.8f);
+    lightingShader->setVec3("pointLights[3].specular", 1.0f, 1.0f, 1.0f);
+    lightingShader->setFloat("pointLights[3].constant", 1.0f);
+    lightingShader->setFloat("pointLights[3].linear", 0.09f);
+    lightingShader->setFloat("pointLights[3].quadratic", 0.032f);
 	// spotLight
     //_lightingShader->setVec3("spotLight.position", _camera.position());
     //_lightingShader->setVec3("spotLight.direction", _camera.front());
@@ -581,104 +446,35 @@ void Game::render(GameObject& gameObject)
     //_lightingShader->setFloat("spotLight.cutOff", glm::cos(glm::radians(12.5f)));
     //_lightingShader->setFloat("spotLight.outerCutOff", glm::cos(glm::radians(15.0f)));  
 
-	// Use camera object to navigate the scene
-	auto view = _camera.getViewMatrix();
-	auto projection = perspective(radians(_camera.zoom())
-		, static_cast<float>(SCR_WIDTH) / static_cast<float>(SCR_HEIGHT), 0.1f, 100.0f);
-
-	_lightingShader->setMat4("projection", projection);
-	_lightingShader->setMat4("view", view);
+	lightingShader->setMat4("projection", projection);
+	lightingShader->setMat4("view", view);
 	mat4 worldTransform(1.0f);
-	_lightingShader->setMat4("model", worldTransform);
+	lightingShader->setMat4("model", worldTransform);
 
 	//_shader->use();
 	//_shader->setMat4("projection", projection);
 	//_shader->setMat4("view", view);
 
-	/*
-	if (bodies[0])
-	{
-		btTransform trans;
-		for (int i = 0; i < 10; i++)
-		{
-			bodies[i]->getMotionState()->getWorldTransform(trans);
-			cubePositions[i].x = trans.getOrigin().x();
-			cubePositions[i].y = trans.getOrigin().y();
-			cubePositions[i].z = trans.getOrigin().z();
-		}
-	}
-	*/
-
 	if (once) {
 		for (unsigned int i = 0; i < 15; i++) {
-			//PxMat44 nvModel = PxMat44(PxIdentity);
-			//nvModel.transform(GlmtoPx(cubePositions[i]));
-
 			auto modelm = mat4(1.0f);
 			modelm = translate(modelm, cubePositions[i]);
 			auto angle = 20.0f * i;
 			modelm = rotate(modelm, radians(angle), vec3(1.0f, 0.3f, 0.5f));
 			auto m = quat_cast(modelm);
-			//physx::PxTransform localTm(physx::PxVec3(cubePositions[i].x, cubePositions[i].y, cubePositions[i].z));
-			//auto z = physx::PxTransform(m.x, m.y, m.z);
 			bodies[i] = _physx.createActor(PxTransform(mat44ToPx(modelm)));
-//				localTm.transform(z));
 		}
-		/*
-		btCollisionShape* groundShape = new btBoxShape(btVector3(btScalar(50.), btScalar(10.), btScalar(50.)));
-		btTransform groundTransform;
-		groundTransform.setIdentity();
-		groundTransform.setOrigin(btVector3(0, -26, 0));
-		btDefaultMotionState* myMotionState = new btDefaultMotionState(groundTransform);
-		btVector3 localInertia(0, 0, 0);
-		btRigidBody::btRigidBodyConstructionInfo rbInfo(0, myMotionState, groundShape, localInertia);
-		btRigidBody* body = new btRigidBody(rbInfo);
-		body->setFriction(1.0);
-		body->setRestitution(1.0);
-		dynamicsWorld->addRigidBody(body);
-
-		for (unsigned int i = 0; i < 10; i++) {
+		
+		{
 			auto modelm = mat4(1.0f);
-			modelm = translate(modelm, cubePositions[i]);
-			auto angle = 20.0f * i;
-			modelm = rotate(modelm, radians(angle), vec3(1.0f, 0.3f, 0.5f));
-
-			auto m = quat_cast(modelm);
-			auto motionstate = new btDefaultMotionState(btTransform(
-				btQuaternion(m.x, m.y, m.z, m.w), 
-				btVector3(cubePositions[i].x, cubePositions[i].y, cubePositions[i].z)
-			));
-
-			auto box = new btBoxShape(btVector3(0.53f, 0.53f, 0.53f));
-
-			auto r = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
-			auto body = new btRigidBody(r, motionstate, box);
-			bodies[i] = body;
-			body->setRestitution(1.0);
-			body->setFriction(1.0);
-			body->setRollingFriction(1.0);
-
-			dynamicsWorld->addRigidBody(body);
+			modelm = translate(modelm, _camera.position());
+			cameraBody = _physx.createActor(PxTransform(mat44ToPx(modelm)));
 		}
-		// Crysis model physics (bounding box)
-		mat4 modelm = mat4(1.0f);
-		modelm = translate(modelm, vec3(2.0f, -1.75f, 0.0f));
-		modelm = scale(modelm, vec3(0.2f, 0.2f, 0.2f));
 
-		model.BoundingBox(mat4());
-
-		quat m2 = glm::quat_cast(modelm); // object space <-> physics space?
-		btDefaultMotionState* motionstate2 = new btDefaultMotionState(btTransform(
-			btQuaternion(m2.x, m2.y, m2.z, m2.w), 
-			btVector3(2.0f, -1.75f, 0.0f)
-		));
-
-		auto modelTestBody = new btRigidBody(0.01, motionstate2, model.box);
-
-		dynamicsWorld->addRigidBody(modelTestBody);
-		*/
 		once = false;
 	}
+
+	//_camera.setPosition(vec3ToGlm(cameraBody->getGlobalPose().p));
 
 	for (unsigned int i = 0; i < 15; i++) {
 		PxRigidDynamic* body = bodies[i];
@@ -692,24 +488,24 @@ void Game::render(GameObject& gameObject)
 	for (unsigned int i = 0; i < 15; i++) {
 		auto modelm = translate(mat4(1.0f), cubePositions[i]) * toMat4(cubeRotations[i]);
 
-		_lightingShader->use();
-		_lightingShader->setMat4("model", modelm);
+		lightingShader->use();
+		lightingShader->setMat4("model", modelm);
 
 		glDrawArrays(GL_TRIANGLES, 0, 36);
 	}
 
-    _lampShader->use();
-    _lampShader->setMat4("projection", projection);
-    _lampShader->setMat4("view", view);
+    lampShader->use();
+    lampShader->setMat4("projection", projection);
+    lampShader->setMat4("view", view);
     
 	glBindVertexArray(_lightVao);
-	for (int i = 0; i < 4; i++)
+	for (auto i = 0; i < 4; i++)
 	{
-		_lampShader->setVec3("colour", pointLightColours[i]);
+		lampShader->setVec3("colour", pointLightColours[i]);
 		auto modelm = mat4(1.0f);
 		modelm = glm::translate(modelm, pointLightPositions[i]);
 		modelm = glm::scale(modelm, glm::vec3(0.2f)); // Make it a smaller cube
-		_lampShader->setMat4("model", modelm);
+		lampShader->setMat4("model", modelm);
 		glDrawArrays(GL_TRIANGLES, 0, 36);
 
 		pointLightColours[i].x += 0.01f;
@@ -725,23 +521,21 @@ void Game::render(GameObject& gameObject)
 
     glBindVertexArray(0);
 
-	// Draw skybox
-    glDepthFunc(GL_LEQUAL);  // change depth function so depth test passes when values are equal to depth buffer's content
-    _skyboxShader->use();
-    view = glm::mat4(glm::mat3(_camera.getViewMatrix())); // remove translation from the view matrix
-    _skyboxShader->setMat4("view", view);
-    _skyboxShader->setMat4("projection", projection);
-    // skybox cube
-    glBindVertexArray(_skyboxVao);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_CUBE_MAP, _skyboxTexture);
-    glDrawArrays(GL_TRIANGLES, 0, 36);
-    glBindVertexArray(0);
-    glDepthFunc(GL_LESS); // set depth function back to default
-	// end draw skybox
+	modelShader->use();
+	modelShader->setMat4("projection", projection);
+	modelShader->setMat4("view", view);
+
+	auto modelm = mat4(1.0f);
+	modelm = translate(modelm, vec3(2.0f, -1.75f, 0.0f));
+	modelm = scale(modelm, vec3(0.2f, 0.2f, 0.2f));
+	modelShader->setMat4("model", modelm);
+	spacetruck->draw(modelShader);
 
 	glBindTexture(GL_TEXTURE_2D, 0);
-	/*
+
+    _skybox.draw(gameObject, render);
+
+    /*
 	// Draw Crysis Model
 	_modelShader->use();
 	_modelShader->setMat4("projection", projection);
@@ -764,15 +558,15 @@ void Game::render(GameObject& gameObject)
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	*/
 
-	_textShader->use();
+	textShader->use();
 	const auto textProj = ortho(0.0f, static_cast<GLfloat>(SCR_WIDTH), 0.0f, static_cast<GLfloat>(SCR_HEIGHT));
-	_textShader->setMat4("projection", textProj);
+	textShader->setMat4("projection", textProj);
 
-	auto _arial = _fontLoader.load(DEFAULT_FONT).value();
-	_arial->draw(_textShader, "vendor: " + vendor, vec2(25.0f, SCR_HEIGHT - 45.0f), 1.0f, vec3(0.5f, 0.8f, 0.2f));
-	_arial->draw(_textShader, "renderer: " + renderer, vec2(25.0f, SCR_HEIGHT - 60.0f), 1.0f, vec3(0.5f, 0.8f, 0.2f));
-	_arial->draw(_textShader, "version: " + version, vec2(25.0f, SCR_HEIGHT - 75.0f), 1.0f, vec3(0.5f, 0.8f, 0.2f));
-	_arial->draw(_textShader, "fps: " + to_string(gameObject.frameRate), vec2(25.0f, SCR_HEIGHT - 25.0f), 1.0f, vec3(0.5f, 0.8f, 0.2f));
+	auto arial = _fontLoader.load(DEFAULT_FONT).value();
+	arial->draw(textShader, "vendor: " + vendor, vec2(25.0f, SCR_HEIGHT - 45.0f), 1.0f, vec3(0.5f, 0.8f, 0.2f));
+	arial->draw(textShader, "renderer: " + renderer, vec2(25.0f, SCR_HEIGHT - 60.0f), 1.0f, vec3(0.5f, 0.8f, 0.2f));
+	arial->draw(textShader, "version: " + version, vec2(25.0f, SCR_HEIGHT - 75.0f), 1.0f, vec3(0.5f, 0.8f, 0.2f));
+	arial->draw(textShader, "fps: " + to_string(gameObject.frameRate), vec2(25.0f, SCR_HEIGHT - 25.0f), 1.0f, vec3(0.5f, 0.8f, 0.2f));
 
 	if (showPhysicsDebug) {
 		drawer->linesFromScene();
@@ -781,22 +575,21 @@ void Game::render(GameObject& gameObject)
 
 	glDisable(GL_DEPTH_TEST);
 
-	nk_glfw3_new_frame();
-	if (nk_begin(ctx, "Inspector", nk_rect(SCR_WIDTH - 240, 10, 230, 250), NK_WINDOW_BORDER|NK_WINDOW_MOVABLE|NK_WINDOW_SCALABLE|
-		NK_WINDOW_MINIMIZABLE|NK_WINDOW_TITLE))
-	{
-		auto client = to_string(gameObject.mouseCoOrds.x) + ',' + to_string(gameObject.mouseCoOrds.y);
-		nk_layout_row_dynamic(ctx, 20, 1);
-		nk_label(ctx, "client", NK_TEXT_ALIGN_LEFT);
-		nk_text(ctx, client.c_str(), static_cast<int>(client.length()), NK_TEXT_ALIGN_RIGHT);
-		auto objectSpace = unProject(gameObject.mouseCoOrds, view, projection, vec4(0, 0, SCR_WIDTH, SCR_HEIGHT));
-		auto obj = to_string(objectSpace.x) + ',' + to_string(objectSpace.y) + ',' + to_string(objectSpace.z);
-		nk_label(ctx, "object", NK_TEXT_ALIGN_LEFT);
-		nk_text(ctx, obj.c_str(), static_cast<int>(obj.length()), NK_TEXT_ALIGN_RIGHT);
-	}
-	nk_end(ctx);
-
-	nk_glfw3_render(NK_ANTI_ALIASING_ON, MAX_VERTEX_BUFFER, MAX_ELEMENT_BUFFER);
+    _ui->drawUI(gameObject, render, [gameObject, view, projection](nk_context* ctx)
+    {
+        if (nk_begin(ctx, "Inspector", nk_rect(SCR_WIDTH - 240, 10, 230, 250), NK_WINDOW_BORDER | NK_WINDOW_MOVABLE | NK_WINDOW_SCALABLE |
+            NK_WINDOW_MINIMIZABLE | NK_WINDOW_TITLE))
+        {
+            auto client = to_string(gameObject.mouseCoOrds.x) + ',' + to_string(gameObject.mouseCoOrds.y);
+            nk_layout_row_dynamic(ctx, 20, 1);
+            nk_label(ctx, "client", NK_TEXT_ALIGN_LEFT);
+            nk_text(ctx, client.c_str(), static_cast<int>(client.length()), NK_TEXT_ALIGN_RIGHT);
+            const auto objectSpace = unProject(gameObject.mouseCoOrds, view, projection, vec4(0, 0, SCR_WIDTH, SCR_HEIGHT));
+            auto obj = to_string(objectSpace.x) + ',' + to_string(objectSpace.y) + ',' + to_string(objectSpace.z);
+            nk_label(ctx, "object", NK_TEXT_ALIGN_LEFT);
+            nk_text(ctx, obj.c_str(), static_cast<int>(obj.length()), NK_TEXT_ALIGN_RIGHT);
+        }
+    });
 }
 
 void Game::update(GameObject& gameObject) {

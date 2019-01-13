@@ -2,7 +2,7 @@
 #include <PxFoundation.h>
 #include <foundation/PxSimpleTypes.h>
 
-#include "PhysXSetup.h"
+#include "PhysXSetup.hpp"
 
 using namespace physx;
 

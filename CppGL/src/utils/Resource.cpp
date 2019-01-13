@@ -1,4 +1,4 @@
-#include "utils/Resource.h"
+#include "utils/Resource.hpp"
 
 #include <string>
 

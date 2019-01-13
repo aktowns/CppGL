@@ -1,5 +1,5 @@
-#include "Model.h"
-#include "utils/FmtExtensions.h"
+#include "Model.hpp"
+#include "utils/FmtExtensions.hpp"
 
 #include <glm/glm.hpp>
 #include <utility>
@@ -14,10 +14,6 @@ Model::Model(const std::filesystem::path path, const bool gamma)
     , gammaCorrection(gamma)
     , _minBounds(FLT_MAX)
     , _maxBounds(FLT_MIN)
-{
-}
-
-void Model::setup()
 {
 	loadModel(_path);
 }
@@ -97,16 +93,18 @@ Mesh Model::processMesh(aiMesh * mesh, const aiScene * scene)
 		else {
 			vertex.texCoords = vec2(0.0f, 0.0f);
 		}
-		// tangent 
-		vect.x = mesh->mTangents[i].x;
-		vect.y = mesh->mTangents[i].y;
-		vect.z = mesh->mTangents[i].z;
-		vertex.tangent = vect;
-		// bitangent
-		vect.x = mesh->mBitangents[i].x;
-		vect.y = mesh->mBitangents[i].y;
-		vect.z = mesh->mBitangents[i].z;
-		vertex.bitangent = vect;
+        if (mesh->HasTangentsAndBitangents()) {
+            // tangent 
+            vect.x = mesh->mTangents[i].x;
+            vect.y = mesh->mTangents[i].y;
+            vect.z = mesh->mTangents[i].z;
+            vertex.tangent = vect;
+            // bitangent
+            vect.x = mesh->mBitangents[i].x;
+            vect.y = mesh->mBitangents[i].y;
+            vect.z = mesh->mBitangents[i].z;
+            vertex.bitangent = vect;
+        }
 		vertices.push_back(vertex);
 	}
 
@@ -121,7 +119,27 @@ Mesh Model::processMesh(aiMesh * mesh, const aiScene * scene)
 
 	// Materials
 	aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
-	
+    
+    // DEBUG
+	{
+        auto ambient = material->GetTextureCount(aiTextureType_AMBIENT);
+        auto diffuse = material->GetTextureCount(aiTextureType_DIFFUSE);
+        auto displacement = material->GetTextureCount(aiTextureType_DISPLACEMENT);
+        auto emissive = material->GetTextureCount(aiTextureType_EMISSIVE);
+        auto height = material->GetTextureCount(aiTextureType_HEIGHT);
+        auto lightmap = material->GetTextureCount(aiTextureType_LIGHTMAP);
+        auto none = material->GetTextureCount(aiTextureType_NONE);
+        auto normals = material->GetTextureCount(aiTextureType_NORMALS);
+        auto opacity = material->GetTextureCount(aiTextureType_OPACITY);
+        auto reflection = material->GetTextureCount(aiTextureType_REFLECTION);
+        auto shininess = material->GetTextureCount(aiTextureType_SHININESS);
+        auto specular = material->GetTextureCount(aiTextureType_SPECULAR);
+        auto unknown = material->GetTextureCount(aiTextureType_UNKNOWN);
+        console->debug("textures: ambient={} diffuse={} displacement={} emissive={} \
+            height={} lightmap={} none={} normals={} opacity={} reflection={} shininess={} \
+            specular={} unknown={}", ambient, diffuse, displacement, emissive, height,
+            lightmap, none, normals, opacity, reflection, shininess, specular, unknown);
+	}
 	// diffuse maps
 	vector<MeshTexture> diffuseMaps = loadMaterialTextures(material, aiTextureType_DIFFUSE, "texture_diffuse");
 	textures.insert(textures.end(), diffuseMaps.begin(), diffuseMaps.end());

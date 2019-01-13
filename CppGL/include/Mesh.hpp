@@ -7,9 +7,9 @@
 
 #include <spdlog/spdlog.h>
 
-#include "Shader.h"
-#include "Logger.h"
-#include "Texture.h"
+#include "Shader.hpp"
+#include "Logger.hpp"
+#include "Texture.hpp"
 
 struct Vertex final
 {

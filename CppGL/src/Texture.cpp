@@ -1,5 +1,5 @@
-#include "Texture.h"
-#include "Loader.h"
+#include "Texture.hpp"
+#include "Loader.hpp"
 
 #include <glad/glad.h>
 #include <stb_image.h>

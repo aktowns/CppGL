@@ -1,14 +1,14 @@
 #pragma once
 
+#include <glad/glad.h>
+
 #include <map>
 
 #include <glm/glm.hpp>
 
-#include <glad/glad.h>
-
-#include "Shader.h"
-#include "Logger.h"
-#include "Loader.h"
+#include "Shader.hpp"
+#include "Logger.hpp"
+#include "Loader.hpp"
 
 #include <optional>
 
@@ -30,6 +30,6 @@ public:
 
 	void setup();
 	void draw(const Shader *shader, std::string text, glm::vec2 coOrd, GLfloat scale, glm::vec3 color);
-  static std::optional<Font*> fromResource(const Resource& resource, const Console& console);
+	static std::optional<Font*> fromResource(const Resource& resource, const Console& console);
 };
 

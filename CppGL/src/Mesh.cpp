@@ -1,4 +1,4 @@
-#include "Mesh.h"
+#include "Mesh.hpp"
 
 using namespace std;
 using namespace glm;
@@ -27,17 +27,29 @@ void Mesh::draw(const Shader* shader)
 		string number;
 		auto name = textures[i].type;
 
-		if (name == "texture_diffuse")
-			number = to_string(diffuseNr++);
-		else if (name == "texture_specular")
-			number = to_string(specularNr++);
-		else if (name == "texture_normal")
-			number = to_string(normalNr++);
-		else if (name == "texture_height")
-			number = to_string(heightNr++);
+        shader->setBool("samplerActive.diffuse", false);
+        shader->setBool("samplerActive.specular", false);
+        shader->setBool("samplerActive.normal", false);
+        shader->setBool("samplerActive.height", false);
+        if (name == "texture_diffuse") {
+            number = to_string(diffuseNr++);
+            shader->setBool("samplerActive.diffuse", true);
+        }
+        else if (name == "texture_specular") {
+            number = to_string(specularNr++);
+            shader->setBool("samplerActive.specular", true);
+        } 
+        else if (name == "texture_normal") {
+            number = to_string(normalNr++);
+            shader->setBool("samplerActive.normal", true);
+        }
+        else if (name == "texture_height") {
+            number = to_string(heightNr++);
+            shader->setBool("samplerActive.height", true);
+        }
 
 		shader->setInt((name + number), i);
-		//glUniform1i(glGetUniformLocation(shader._program, (name + number).c_str()), i);
+		//glUniform1i(glGetUniformLocation(shader->program(), (name + number).c_str()), i);
 		glBindTexture(GL_TEXTURE_2D, textures[i].id);
 	}
 
@@ -46,6 +58,7 @@ void Mesh::draw(const Shader* shader)
 	glActiveTexture(GL_TEXTURE0);
 
 	glBindTexture(GL_TEXTURE_2D, 0);
+	glBindVertexArray(0);
 }
 
 void Mesh::setupMesh()

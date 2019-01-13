@@ -34,9 +34,6 @@ set(ALL_LIBS
 	GLAD
 	assimp
 	freetype
-	#BulletDynamics
-	#BulletCollision
-	#LinearMath
 	fmt-header-only
 	PhysX
 	PhysXExtensions
@@ -45,8 +42,12 @@ set(ALL_LIBS
 	PhysXFoundation
 	PhysXVehicle
 	PhysXPvdSDK
-  stdc++fs
+	lua
 )
+
+if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+set(ALL_LIBS ${ALL_LIBS} stdc++fs)
+endif(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
 # Include sub-projects.
 add_subdirectory ("CppGL")

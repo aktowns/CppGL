@@ -1,35 +1,29 @@
 #pragma once
 
-#include "Logger.h"
+#include "Logger.hpp"
 
-#include "Camera.h"
-#include "Shader.h"
-#include "Model.h"
-#include "Font.h"
-#include "Loader.h"
-#include "Texture.h"
-#include "PhysXSetup.h"
-#include "utils/DebugDrawer.h"
+#include "Camera.hpp"
+#include "Shader.hpp"
+#include "Model.hpp"
+#include "Font.hpp"
+#include "Loader.hpp"
+#include "Texture.hpp"
+#include "PhysXSetup.hpp"
+#include "Renderable.hpp"
+#include "utils/DebugDrawer.hpp"
 
 #include <glm/glm.hpp>
 #include <GLFW/glfw3.h>
-
-struct GameObject final
-{
-	GLFWwindow* window;
-	float deltaTime;
-	int frameCount;
-	int frameRate;
-	glm::vec3 mouseCoOrds;
-};
+#include "Skybox.hpp"
+#include "GameUI.hpp"
 
 class Game final : public Logger {
 	unsigned int _vao;
 	unsigned int _lightVao;
-	unsigned int _skyboxVao;
+	unsigned int _icosphereVao;
 	unsigned int _vbo;
-	unsigned int _skyboxVbo;
-	unsigned int _skyboxTexture;
+	unsigned int _icosphereVbo;
+	unsigned int _icosphereEbo;
 	Camera _camera;
 
 	Loader<Font> _fontLoader;
@@ -37,6 +31,8 @@ class Game final : public Logger {
 	Loader<Model> _modelLoader;
 	Loader<Texture> _textureLoader;
 	PhysXSetup _physx{};
+    Skybox _skybox;
+    GameUI* _ui;
 public:
 	Game();
 	void setup(GLFWwindow* window);

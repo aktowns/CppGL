@@ -18,36 +18,50 @@ include_directories(
 	${THIRD}/fmt/include/
 	${THIRD}/PhysX/physx/include/
 	${THIRD}/PhysX/pxshared/include/
+	${THIRD}/lua/src
+    ${THIRD}/entt/src/
 	include/
 )
 
 set(HEADERS 
-	"include/Shader.h" 
-	"include/Camera.h"
-	"include/Mesh.h"
-	"include/Model.h"
-	"include/Font.h"
-	"include/Texture.h"
-	"include/Game.h"
-	"include/Config.h"
-	"include/Loader.h"
-	"include/utils/Resource.h"
-	"include/utils/FmtExtensions.h"
-	#"include/utils/DebugDrawer.h"
+    "include/utils/Conversions.hpp"
+	"include/utils/DebugDrawer.hpp"
+	"include/utils/FmtExtensions.hpp"
+	"include/utils/Resource.hpp"
+	"include/Camera.hpp"
+	"include/Config.hpp"
+	"include/Font.hpp"
+	"include/Game.hpp"
+    "include/GameUI.hpp"
+	"include/Icosphere.hpp"
+	"include/Loader.hpp"
+    "include/Logger.hpp"
+	"include/LuaScript.hpp"
+	"include/Mesh.hpp"
+	"include/Model.hpp"
+    "include/PhysXSetup.hpp"
+    "include/Renderable.hpp"
+	"include/Shader.hpp" 
+    "include/Skybox.hpp"
+	"include/Texture.hpp"
 )
 
 set(SRCS
-	"src/Main.cpp"
-	"src/Shader.cpp"
+	"src/utils/Resource.cpp"
 	"src/Camera.cpp"
+	"src/Font.cpp"
+	"src/Game.cpp"
+    "src/GameUI.cpp"
+	"src/Icosphere.cpp"
+	"src/LuaScript.cpp"
+	"src/Main.cpp"
 	"src/Mesh.cpp"
 	"src/Model.cpp"
-	"src/Font.cpp"
-	"src/Texture.cpp"
-	"src/Game.cpp"
-	"src/utils/Resource.cpp"
-	"src_boilerplate/stb_image.cpp"
 	"src/PhysXSetup.cpp"
+	"src/Shader.cpp"
+    "src/Skybox.cpp"
+	"src/Texture.cpp"
+	"src_boilerplate/stb_image.cpp"
 )
 
 # Add source to this project's executable.
@@ -65,8 +79,17 @@ set(MODEL_DIR "resources/models")
 set(FONT_DIR "resources/fonts")
 
 function(copy TYPE FROM TO)
-	message("copying " ${TYPE} " from " ${FROM} " to " ${TO})	
-	configure_file(${FROM} ${TO} COPYONLY)
+    get_filename_component(FFROM ${FROM} ABSOLUTE)
+    if(IS_DIRECTORY ${FFROM})
+        file(GLOB files "${FFROM}/*")
+        foreach(file ${files})
+            get_filename_component(BNAME ${file} NAME)
+            copy(${TYPE} ${file} "${TO}/${BNAME}")
+        endforeach()
+    else()
+	    message("copying " ${TYPE} " from " ${FFROM} " to " ${TO})	
+	    configure_file(${FFROM} ${TO} COPYONLY)
+    endif(IS_DIRECTORY ${FFROM})
 endfunction()
 
 function(copy_resource)
@@ -100,10 +123,12 @@ endfunction()
 
 copy_resource(SHADER SOURCES "shader.frag" "shader.vert" "model.frag" "model.vert" "text.frag" "text.vert" 
 	"multiple_lights.frag" "multiple_lights.vert" "debugline.frag" "debugline.vert" "lamp.frag" "lamp.vert"
-	"skybox.frag" "skybox.vert")
+	"skybox.frag" "skybox.vert" "basic.frag" "basic.vert")
 copy_resource(TEXTURE SOURCES "awesomeface.png" "container.png" "container2.png" "container2_specular.png")
 copy_resource(TEXTURE SOURCES "skybox/back.png" "skybox/bottom.png" "skybox/front.png" 
 	"skybox/left.png" "skybox/right.png" "skybox/top.png")
-copy_resource(MODEL SOURCES "nanosuit")
-copy_resource(MODEL SOURCES "link")
+#copy_resource(MODEL SOURCES "nanosuit")
+#copy_resource(MODEL SOURCES "link")
+#copy_resource(MODEL SOURCES "spacetruck")
+copy_resource(MODEL SOURCES "spaceship")
 copy_resource(FONT SOURCES "arial.ttf")

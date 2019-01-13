@@ -1,10 +1,8 @@
-#include "Shader.h"
-#include "Model.h"
-#include "Game.h"
-#include "Config.h"
-#include "utils/DebugDrawer.h"
-
 #include <glad/glad.h>
+
+#include "Game.hpp"
+#include "Config.hpp"
+
 #include <GLFW/glfw3.h>
 
 #include <glm/glm.hpp>
@@ -26,7 +24,7 @@ float previousTime = 0.0f;
 float lastFrame = 0.0f;
 
 static GameObject gameObject{};
-Game game;
+Game* game;
 
 void framebufferSizeCallback(GLFWwindow* window, int width, int height) {
 	glViewport(0, 0, width, height);
@@ -45,14 +43,14 @@ void mouseCallback(GLFWwindow* window, double xpos, double ypos) {
 	lastX = xpos;
 	lastY = ypos;
 
-	game.mouseMoved(window, dvec2(xpos, ypos), dvec2(xoffset, yoffset));
+	game->mouseMoved(window, dvec2(xpos, ypos), dvec2(xoffset, yoffset));
 	gameObject.mouseCoOrds = vec3(xpos, ypos, 0);
 }
 
 void scrollCallback(GLFWwindow* window, double xoffset, double yoffset) 
 {
 	cout << "scroll callback" << endl;
-	game.mouseScrolled(window, dvec2(xoffset, yoffset));
+	game->mouseScrolled(window, dvec2(xoffset, yoffset));
 }
 
 void debugCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length,
@@ -77,7 +75,7 @@ void setCursor(GLFWwindow* window)
 
 void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods)
 {
-	game.mouseButton(window, button, action, mods);
+	game->mouseButton(window, button, action, mods);
 }
 
 int main()
@@ -137,7 +135,8 @@ int main()
 		console->error("OpenGL debugging not available");
 	}
 
-	game.setup(window);
+    game = new Game();
+	game->setup(window);
 
 	glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
@@ -149,11 +148,11 @@ int main()
 		lastFrame = currentFrame;
 		gameObject.frameCount++;
 
-		game.processInput(gameObject);
+		game->processInput(gameObject);
 
-		game.update(gameObject);
+		game->update(gameObject);
 
-		game.render(gameObject);
+		game->render(gameObject);
 
 		if (currentFrame - previousTime >= 1.0) {
 			gameObject.frameRate = gameObject.frameCount;

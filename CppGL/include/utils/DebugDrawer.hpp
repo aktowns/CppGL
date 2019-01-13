@@ -1,9 +1,9 @@
 #pragma once
 
-#include "Shader.h"
-#include "Loader.h"
-#include "Logger.h"
-#include "Config.h"
+#include "Shader.hpp"
+#include "Loader.hpp"
+#include "Logger.hpp"
+#include "Config.hpp"
 
 #include <iostream>
 #include <vector>
@@ -35,7 +35,6 @@ public:
 	{
 		glGenVertexArrays(1, &_vao);
 		glGenBuffers(1, &_vbo);
-		_debugShader->setup();
 	}
 
 	void drawLine(const physx::PxVec3 &from, 
