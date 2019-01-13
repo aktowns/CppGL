@@ -18,15 +18,10 @@
 #include <string>
 
 #include <iostream>
-#include <stb_image.h>
 
 #include "GameUI.hpp"
 
-#include <PxPhysics.h>
 #include <foundation/PxMat44.h>
-#include <PxScene.h>
-#include <PxRenderBuffer.h>
-#include <PxFoundation.h>
 #include <PxRigidDynamic.h>
 
 #include "PhysXSetup.hpp"
@@ -117,15 +112,14 @@ vec3 pointLightPositions[] = {
 };
 
 Game::Game() :
-    Logger("game"),
+    Logger("game"), _vao(0), _lightVao(0), _icosphereVao(0), _vbo(0), _icosphereVbo(0), _icosphereEbo(0),
     _camera(glm::vec3(0.0f, 0.0f, 3.0f)),
     _fontLoader(Font::fromResource),
     _shaderLoader(Shader::fromResource),
     _modelLoader(Model::fromResource),
     _textureLoader(textureFromResource),
-    _skybox(Skybox(cubeMapFaces, _shaderLoader))
+    _skybox(Skybox(cubeMapFaces, _shaderLoader)), _ui(nullptr)
 {
-
 }
 
 DebugDrawer* drawer;
@@ -192,7 +186,7 @@ void Game::setup(GLFWwindow* window)
 	glEnableVertexAttribArray(1);
 
 	// Texture CoOrds
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), reinterpret_cast<void*>(6 * sizeof(float)));
     glEnableVertexAttribArray(2);
 
 	// second, configure the light's VAO (VBO stays the same; the vertices are the same for the light object which is also a 3D cube)
@@ -201,7 +195,7 @@ void Game::setup(GLFWwindow* window)
 
     glBindBuffer(GL_ARRAY_BUFFER, _vbo);
     // note that we update the lamp's position attribute's stride to reflect the updated buffer data
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), static_cast<void*>(nullptr));
     glEnableVertexAttribArray(0);
 
 	//auto texture1 = _textureLoader.load("container.png");
@@ -334,16 +328,15 @@ vec3 pointLightColours[] = {
 
 void Game::render(GameObject& gameObject) 
 {
-	auto _shader = _shaderLoader.load("shader").value();
-	auto modelShader = _shaderLoader.load("model").value();
-	auto textShader = _shaderLoader.load("text").value();
-	auto lightingShader = _shaderLoader.load("multiple_lights").value();
-	auto lampShader = _shaderLoader.load("lamp").value();
+    const auto modelShader = _shaderLoader.load("model").value();
+    const auto textShader = _shaderLoader.load("text").value();
+    const auto lightingShader = _shaderLoader.load("multiple_lights").value();
+    const auto lampShader = _shaderLoader.load("lamp").value();
 	//auto _model = _modelLoader.load("nanosuit/nanosuit.obj").value();
 	//auto _link = _modelLoader.load("link/link.obj").value();
 	//auto _spacetruck = _modelLoader.load("nanosuit/nanosuit.obj").value();
 	auto spacetruck = _modelLoader.load("spaceship/spaceship.fbx").value();
-	auto basic = _shaderLoader.load("basic").value();
+    const auto basic = _shaderLoader.load("basic").value();
 
     const string version(reinterpret_cast<const char*>(glGetString(GL_VERSION)));
     const string vendor(reinterpret_cast<const char*>(glGetString(GL_VENDOR)));
@@ -448,7 +441,7 @@ void Game::render(GameObject& gameObject)
 
 	lightingShader->setMat4("projection", projection);
 	lightingShader->setMat4("view", view);
-	mat4 worldTransform(1.0f);
+    const mat4 worldTransform(1.0f);
 	lightingShader->setMat4("model", worldTransform);
 
 	//_shader->use();
@@ -459,9 +452,8 @@ void Game::render(GameObject& gameObject)
 		for (unsigned int i = 0; i < 15; i++) {
 			auto modelm = mat4(1.0f);
 			modelm = translate(modelm, cubePositions[i]);
-			auto angle = 20.0f * i;
+            const auto angle = 20.0f * i;
 			modelm = rotate(modelm, radians(angle), vec3(1.0f, 0.3f, 0.5f));
-			auto m = quat_cast(modelm);
 			bodies[i] = _physx.createActor(PxTransform(mat44ToPx(modelm)));
 		}
 		
