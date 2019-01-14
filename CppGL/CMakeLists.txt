@@ -123,8 +123,9 @@ endfunction()
 
 copy_resource(SHADER SOURCES "shader.frag" "shader.vert" "model.frag" "model.vert" "text.frag" "text.vert" 
 	"multiple_lights.frag" "multiple_lights.vert" "debugline.frag" "debugline.vert" "lamp.frag" "lamp.vert"
-	"skybox.frag" "skybox.vert" "basic.frag" "basic.vert")
-copy_resource(TEXTURE SOURCES "awesomeface.png" "container.png" "container2.png" "container2_specular.png")
+	"skybox.frag" "skybox.vert" "basic.frag" "basic.vert" "overlay.vert" "overlay.frag" 
+    "overlaytext.vert" "overlaytext.frag")
+copy_resource(TEXTURE SOURCES "awesomeface.png" "container.png" "container2.png" "container2_specular.png" "lamp.png")
 copy_resource(TEXTURE SOURCES "skybox/back.png" "skybox/bottom.png" "skybox/front.png" 
 	"skybox/left.png" "skybox/right.png" "skybox/top.png")
 #copy_resource(MODEL SOURCES "nanosuit")
@@ -132,3 +133,4 @@ copy_resource(TEXTURE SOURCES "skybox/back.png" "skybox/bottom.png" "skybox/fron
 #copy_resource(MODEL SOURCES "spacetruck")
 copy_resource(MODEL SOURCES "spaceship")
 copy_resource(FONT SOURCES "arial.ttf")
+copy_resource(FONT SOURCES "neuropolmod.ttf")

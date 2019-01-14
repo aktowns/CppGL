@@ -107,6 +107,13 @@ quat cubeRotations[15];
 vec3 pointLightPositions[] = {
     vec3( 0.7f,  0.2f,  2.0f),
     vec3( 2.3f, -3.3f, -4.0f),
+    vec3(-2.0f,  2.0f, -1.0f),
+    vec3( 0.0f,  0.0f, -3.0f)
+};
+
+vec3 initialPointLightPositions[] = {
+    vec3( 0.7f,  0.2f,  2.0f),
+    vec3( 2.3f, -3.3f, -4.0f),
     vec3(-4.0f,  2.0f, -12.0f),
     vec3( 0.0f,  0.0f, -3.0f)
 };
@@ -121,6 +128,13 @@ Game::Game() :
     _skybox(Skybox(cubeMapFaces, _shaderLoader)), _ui(nullptr)
 {
 }
+
+static const GLfloat overlayVertices[] = {
+         -0.5f, -0.5f, 0.0f,  0.0,  0.0,
+          0.5f, -0.5f, 0.0f,  1.0,  0.0,
+         -0.5f,  0.5f, 0.0f,  0.0,  1.0,
+          0.5f,  0.5f, 0.0f,  1.0,  1.0
+};
 
 DebugDrawer* drawer;
 
@@ -141,18 +155,41 @@ void Game::setup(GLFWwindow* window)
 	//auto _spacetruck = _modelLoader.load("nanosuit/nanosuit.obj").value();
 
 	console->info("Loading shaders");
+    const auto overlayShader = _shaderLoader.load("overlay").value();
+    const auto overlayTextShader = _shaderLoader.load("overlaytext").value();
     const auto shader = _shaderLoader.load("shader").value();
 	_shaderLoader.load("model");
 	_shaderLoader.load("text");
     const auto lightingShader = _shaderLoader.load("multiple_lights").value();
-	_shaderLoader.load("lamp");
+	//_shaderLoader.load("lamp");
 	_shaderLoader.load("basic");
 
 	console->info("Loading fonts");
 	_fontLoader.load(DEFAULT_FONT).value()->setup();
+    _fontLoader.load(GAME_FONT).value()->setup();
+	_fontLoader.load(LARGE_FONT).value()->setup();
 
 	glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
 	glEnable(GL_MULTISAMPLE);
+
+    // Overlay start
+
+    glGenVertexArrays(1, &_overlayVao);
+    glGenBuffers(1, &_overlayVbo);
+    glBindVertexArray(_overlayVao);
+
+    glBindBuffer(GL_ARRAY_BUFFER, _overlayVbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(overlayVertices), overlayVertices, GL_DYNAMIC_DRAW);
+
+    // positions
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), nullptr);
+	glEnableVertexAttribArray(0);
+
+	// tex coords
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), reinterpret_cast<void*>(3 * sizeof(float)));
+	glEnableVertexAttribArray(1);
+
+    // Overlay end
 
 	glGenVertexArrays(1, &_icosphereVao);
 	glGenBuffers(1, &_icosphereVbo);
@@ -190,22 +227,21 @@ void Game::setup(GLFWwindow* window)
     glEnableVertexAttribArray(2);
 
 	// second, configure the light's VAO (VBO stays the same; the vertices are the same for the light object which is also a 3D cube)
-    glGenVertexArrays(1, &_lightVao);
-    glBindVertexArray(_lightVao);
+    //glGenVertexArrays(1, &_lightVao);
+    //glBindVertexArray(_lightVao);
 
-    glBindBuffer(GL_ARRAY_BUFFER, _vbo);
+    //glBindBuffer(GL_ARRAY_BUFFER, _vbo);
     // note that we update the lamp's position attribute's stride to reflect the updated buffer data
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), static_cast<void*>(nullptr));
-    glEnableVertexAttribArray(0);
+    //glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), static_cast<void*>(nullptr));
+    //glEnableVertexAttribArray(0);
 
 	//auto texture1 = _textureLoader.load("container.png");
-	auto texture1 = _textureLoader.load("container2.png");
+	_textureLoader.load("container2.png");
 	_textureLoader.load("container2_specular.png");
-	auto texture2 = _textureLoader.load("awesomeface.png");
+    _textureLoader.load("lamp.png?repeat=false");
 
-	shader->use();
-	shader->setInt("texture1", texture1.value()->id);
-	shader->setInt("texture2", texture2.value()->id);
+	overlayShader->use();
+	overlayShader->setInt("texture1", 0);
 
     lightingShader->use();
     lightingShader->setInt("material.diffuse", 0);
@@ -232,6 +268,7 @@ auto clearColour = vec3(0.5f, 0.5f, 0.5f);
 auto doStep = false;
 bool showTextures = true;
 bool showPhysicsDebug = true;
+bool showSkybox = true;
 
 bool toggles[1024] = { false };
 
@@ -275,6 +312,24 @@ void Game::processInput(GameObject& gameObject)
 		toggles[GLFW_KEY_L] = false;
 	}
 
+	auto keyP = glfwGetKey(gameObject.window, GLFW_KEY_P);
+	if (keyP == GLFW_PRESS && !toggles[GLFW_KEY_P]) {
+		showSkybox = !showSkybox;
+		toggles[GLFW_KEY_P] = true;
+	}
+	else if (keyP == GLFW_RELEASE && toggles[GLFW_KEY_P]) {
+		toggles[GLFW_KEY_P] = false;
+	}
+
+	auto keyM = glfwGetKey(gameObject.window, GLFW_KEY_M);
+	if (keyM == GLFW_PRESS && !toggles[GLFW_KEY_M]) {
+        _shaderLoader.clear();
+		toggles[GLFW_KEY_M] = true;
+	}
+	else if (keyM == GLFW_RELEASE && toggles[GLFW_KEY_M]) {
+		toggles[GLFW_KEY_M] = false;
+	}
+
 	auto keySpace = glfwGetKey(gameObject.window, GLFW_KEY_SPACE);
 	if (keySpace == GLFW_PRESS && !toggles[GLFW_KEY_SPACE])
 	{
@@ -285,12 +340,17 @@ void Game::processInput(GameObject& gameObject)
 		toggles[GLFW_KEY_SPACE] = false;
 	}
 
-	if (glfwGetKey(gameObject.window, GLFW_KEY_C) == GLFW_PRESS) {
+	auto keyC = glfwGetKey(gameObject.window, GLFW_KEY_C);
+	if (keyC == GLFW_PRESS && !toggles[GLFW_KEY_C]) {
 		if (glfwGetInputMode(gameObject.window, GLFW_CURSOR) == GLFW_CURSOR_DISABLED) {
 			glfwSetInputMode(gameObject.window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 		} else {
 			glfwSetInputMode(gameObject.window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 		}
+		toggles[GLFW_KEY_C] = true;
+	}
+	else if (keyC == GLFW_RELEASE && toggles[GLFW_KEY_C]) {
+		toggles[GLFW_KEY_C] = false;
 	}
 }
 
@@ -328,10 +388,13 @@ vec3 pointLightColours[] = {
 
 void Game::render(GameObject& gameObject) 
 {
+    const auto overlayShader = _shaderLoader.load("overlay").value();
+    const auto overlayTextShader = _shaderLoader.load("overlaytext").value();
+    const auto shader = _shaderLoader.load("shader").value();
     const auto modelShader = _shaderLoader.load("model").value();
     const auto textShader = _shaderLoader.load("text").value();
     const auto lightingShader = _shaderLoader.load("multiple_lights").value();
-    const auto lampShader = _shaderLoader.load("lamp").value();
+    //const auto lampShader = _shaderLoader.load("lamp").value();
 	//auto _model = _modelLoader.load("nanosuit/nanosuit.obj").value();
 	//auto _link = _modelLoader.load("link/link.obj").value();
 	//auto _spacetruck = _modelLoader.load("nanosuit/nanosuit.obj").value();
@@ -347,6 +410,48 @@ void Game::render(GameObject& gameObject)
 
 	glEnable(GL_DEPTH_TEST);
 
+	// Use camera object to navigate the scene
+	auto view = _camera.getViewMatrix();
+	auto projection = perspective(radians(_camera.zoom())
+		, static_cast<float>(SCR_WIDTH) / static_cast<float>(SCR_HEIGHT), 0.1f, 100.0f);
+
+    const auto render = RenderObject(view, projection);
+
+    // Overlay?
+	glBindVertexArray(_overlayVao);
+    glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, _textureLoader.load("lamp.png?repeat=false").value()->id);
+    overlayShader->use();
+    overlayShader->setInt("texture1", 0);
+	overlayShader->setMat4("projection", projection);
+	overlayShader->setMat4("view", view);
+    overlayShader->setVec3("cameraUp", _camera.up());
+    overlayShader->setVec3("cameraRight", _camera.right());
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    for (auto pointLightPosition : pointLightPositions)
+    {
+        overlayShader->setVec3("position", pointLightPosition);
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    }
+
+	glBindTexture(GL_TEXTURE_2D, 0);
+    glBindVertexArray(0);
+    glDisable(GL_BLEND);
+
+    overlayTextShader->use();
+	overlayTextShader->setMat4("projection", projection);
+	overlayTextShader->setMat4("view", view);
+    overlayTextShader->setVec3("cameraUp", _camera.up());
+    overlayTextShader->setVec3("cameraRight", _camera.right());
+    overlayTextShader->setVec3("position", vec3(10.0f, 10.0f, 10.0f));
+	auto game = _fontLoader.load(GAME_FONT).value();
+    game->draw(overlayTextShader, "Testing", vec2(1.0, 1.0), 0.1f, vec3(1.0, 1.0, 1.0));
+    overlayTextShader->setVec3("position", vec3(10.0f, 9.8f, 10.0f));
+    game->draw(overlayTextShader, "some other text", vec2(1.0, 1.0), 0.1f, vec3(0.0, 0.0, 0.5));
+    overlayTextShader->setVec3("position", vec3(10.0f, 9.6f, 10.0f));
+    game->draw(overlayTextShader, "font rendering is borked", vec2(1.0, 1.0), 0.1f, vec3(0.0, 0.5, 0.0));
+
 	if (showTextures) {
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, _textureLoader.load("container2.png").value()->id);
@@ -354,13 +459,6 @@ void Game::render(GameObject& gameObject)
 		glActiveTexture(GL_TEXTURE1);
 		glBindTexture(GL_TEXTURE_2D, _textureLoader.load("container2_specular.png").value()->id);
 	}
-
-	// Use camera object to navigate the scene
-	auto view = _camera.getViewMatrix();
-	auto projection = perspective(radians(_camera.zoom())
-		, static_cast<float>(SCR_WIDTH) / static_cast<float>(SCR_HEIGHT), 0.1f, 100.0f);
-
-    const auto render = RenderObject(view, projection);
 
 	basic->use();
 	basic->setMat4("projection", projection);
@@ -384,37 +482,41 @@ void Game::render(GameObject& gameObject)
     lightingShader->setVec3("viewPos", _camera.position());
     lightingShader->setFloat("material.shininess", 32.0f);
 
+    // Orbit the lights just to test..
+    for (auto i = 0; i < 4; i++)
+    {
+       const auto deg = 3.14159 / 180.0;
+        
+       pointLightPositions[i].x = initialPointLightPositions[i].x * (2.0f * sin(glfwGetTime() * deg * 20.0));
+       pointLightPositions[i].z = initialPointLightPositions[i].z * (2.0f * cos(glfwGetTime() * deg * 20.0));
+    }
+
     // directional light
     lightingShader->setVec3("dirLight.direction", -0.2f, -1.0f, -0.3f);
     lightingShader->setVec3("dirLight.ambient", 0.05f, 0.05f, 0.05f);
     lightingShader->setVec3("dirLight.diffuse", 0.4f, 0.4f, 0.4f);
     lightingShader->setVec3("dirLight.specular", 0.5f, 0.5f, 0.5f);
+
     // point light 1
     lightingShader->setVec3("pointLights[0].position", pointLightPositions[0]);
-	lightingShader->setVec3("pointLights[0].ambient", pointLightColours[0].x,
-		pointLightColours[0].y, pointLightColours[0].z);
-    //_lightingShader->setVec3("pointLights[0].ambient", 0.55f, 0.05f, 0.05f);
-    lightingShader->setVec3("pointLights[0].diffuse", 0.8f, 0.8f, 0.8f);
+    lightingShader->setVec3("pointLights[0].ambient", 0.55f, 0.05f, 0.05f);
+    lightingShader->setVec3("pointLights[0].diffuse", 1.0f, 0.0f, 0.0f);
     lightingShader->setVec3("pointLights[0].specular", 1.0f, 1.0f, 1.0f);
     lightingShader->setFloat("pointLights[0].constant", 1.0f);
-    lightingShader->setFloat("pointLights[0].linear", 0.22f);
-    lightingShader->setFloat("pointLights[0].quadratic", 0.020f);
+    lightingShader->setFloat("pointLights[0].linear", 0.09f);
+    lightingShader->setFloat("pointLights[0].quadratic", 0.032f);
 	// point light 2
     lightingShader->setVec3("pointLights[1].position", pointLightPositions[1]);
-	lightingShader->setVec3("pointLights[1].ambient", pointLightColours[1].x,
-		pointLightColours[1].y, pointLightColours[1].z);
-    //_lightingShader->setVec3("pointLights[1].ambient", 0.05f, 0.05f, 0.05f);
-    lightingShader->setVec3("pointLights[1].diffuse", 0.8f, 0.8f, 0.8f);
+    lightingShader->setVec3("pointLights[1].ambient", 0.55f, 0.05f, 0.05f);
+    lightingShader->setVec3("pointLights[1].diffuse", 0.0f, 1.0f, 0.0f);
     lightingShader->setVec3("pointLights[1].specular", 1.0f, 1.0f, 1.0f);
     lightingShader->setFloat("pointLights[1].constant", 1.0f);
     lightingShader->setFloat("pointLights[1].linear", 0.09f);
     lightingShader->setFloat("pointLights[1].quadratic", 0.032f);
     // point light 3
     lightingShader->setVec3("pointLights[2].position", pointLightPositions[2]);
-    //_lightingShader->setVec3("pointLights[2].ambient", 0.05f, 0.05f, 0.05f);
-	lightingShader->setVec3("pointLights[2].ambient", pointLightColours[2].x,
-		pointLightColours[2].y, pointLightColours[2].z);
-    lightingShader->setVec3("pointLights[2].diffuse", 0.8f, 0.8f, 0.8f);
+    lightingShader->setVec3("pointLights[2].ambient", 0.05f, 0.05f, 0.05f);
+    lightingShader->setVec3("pointLights[2].diffuse", 0.0f, 0.0f, 1.0f);
     lightingShader->setVec3("pointLights[2].specular", 1.0f, 1.0f, 1.0f);
     lightingShader->setFloat("pointLights[2].constant", 1.0f);
     lightingShader->setFloat("pointLights[2].linear", 0.09f);
@@ -422,7 +524,7 @@ void Game::render(GameObject& gameObject)
     // point light 4
     lightingShader->setVec3("pointLights[3].position", pointLightPositions[3]);
     lightingShader->setVec3("pointLights[3].ambient", 0.05f, 0.05f, 0.05f);
-    lightingShader->setVec3("pointLights[3].diffuse", 0.8f, 0.8f, 0.8f);
+    lightingShader->setVec3("pointLights[3].diffuse", 1.0f, 1.0f, 0.0f);
     lightingShader->setVec3("pointLights[3].specular", 1.0f, 1.0f, 1.0f);
     lightingShader->setFloat("pointLights[3].constant", 1.0f);
     lightingShader->setFloat("pointLights[3].linear", 0.09f);
@@ -486,32 +588,22 @@ void Game::render(GameObject& gameObject)
 		glDrawArrays(GL_TRIANGLES, 0, 36);
 	}
 
-    lampShader->use();
-    lampShader->setMat4("projection", projection);
-    lampShader->setMat4("view", view);
+    //lampShader->use();
+    //lampShader->setMat4("projection", projection);
+    //lampShader->setMat4("view", view);
     
 	glBindVertexArray(_lightVao);
-	for (auto i = 0; i < 4; i++)
-	{
-		lampShader->setVec3("colour", pointLightColours[i]);
-		auto modelm = mat4(1.0f);
-		modelm = glm::translate(modelm, pointLightPositions[i]);
-		modelm = glm::scale(modelm, glm::vec3(0.2f)); // Make it a smaller cube
-		lampShader->setMat4("model", modelm);
-		glDrawArrays(GL_TRIANGLES, 0, 36);
 
-		pointLightColours[i].x += 0.01f;
-		if (pointLightColours[i].x > 1.0f)
-			pointLightColours[i].x = 0;
-		pointLightColours[i].y += 0.01f;
-		if (pointLightColours[i].y > 1.0f)
-			pointLightColours[i].y = 0;
-		pointLightColours[i].z += 0.01f;
-		if (pointLightColours[i].z > 1.0f)
-			pointLightColours[i].z = 0;
-	}
+	//for (auto i = 0; i < 4; i++)
+	//{
+	//	lampShader->setVec3("colour", pointLightColours[i]);
+	//	auto modelm = mat4(1.0f);
+	//	modelm = glm::translate(modelm, pointLightPositions[i]);
+	//	lampShader->setMat4("model", modelm);
+	//}
+	//glBindTexture(GL_TEXTURE_2D, 0);
+    //glBindVertexArray(0);
 
-    glBindVertexArray(0);
 
 	modelShader->use();
 	modelShader->setMat4("projection", projection);
@@ -525,7 +617,9 @@ void Game::render(GameObject& gameObject)
 
 	glBindTexture(GL_TEXTURE_2D, 0);
 
-    _skybox.draw(gameObject, render);
+    if (showSkybox) {
+        _skybox.draw(gameObject, render);
+    }
 
     /*
 	// Draw Crysis Model
@@ -582,6 +676,8 @@ void Game::render(GameObject& gameObject)
             nk_text(ctx, obj.c_str(), static_cast<int>(obj.length()), NK_TEXT_ALIGN_RIGHT);
         }
     });
+
+    glEnable(GL_DEPTH_TEST);
 }
 
 void Game::update(GameObject& gameObject) {

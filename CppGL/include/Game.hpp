@@ -24,6 +24,8 @@ class Game final : public Logger {
 	unsigned int _vbo;
 	unsigned int _icosphereVbo;
 	unsigned int _icosphereEbo;
+    unsigned int _overlayVao;
+    unsigned int _overlayVbo;
 	Camera _camera;
 
 	Loader<Font> _fontLoader;

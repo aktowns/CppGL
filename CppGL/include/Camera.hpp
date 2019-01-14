@@ -95,6 +95,16 @@ public:
 		return _front;
 	}
 
+    const glm::vec3& up() const
+    {
+        return _up;
+    }
+
+    const glm::vec3& right() const
+    {
+        return _right;
+    }
+
 private:
 	void updateCameraVectors();
 };

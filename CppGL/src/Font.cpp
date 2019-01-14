@@ -33,7 +33,10 @@ void Font::setup()
 
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
-	for (GLubyte c = 0; c < 128; c++) {
+    FT_UInt index;
+    FT_ULong c = FT_Get_First_Char(face, &index);
+    while (index) {
+	//for (GLubyte c = 0; c < 128; c++) {
 		if (FT_Load_Char(face, c, FT_LOAD_RENDER))
 		    console->error("failed to load font glyph");
 
@@ -55,7 +58,9 @@ void Font::setup()
 			static_cast<GLuint>(face->glyph->advance.x)
 		};
 		_characters.insert(pair<GLchar, Character>(c, character));
+        c = FT_Get_Next_Char(face, c, &index);
 	}
+    console->debug("loaded {} glyphs from font", _characters.size());
 	glBindTexture(GL_TEXTURE_2D, 0);
 	FT_Done_Face(face);
 	FT_Done_FreeType(ft);
@@ -91,11 +96,11 @@ void Font::draw(const Shader *shader, string text, vec2 coOrd, const GLfloat sca
 		const auto h = ch.size.y * scale;
 
 		GLfloat vertices[6][4] = {
-			{ xpos, ypos + h, 0.0, 0.0 },
-			{ xpos, ypos, 0.0, 1.0 },
-			{ xpos + w, ypos, 1.0, 1.0 },
-			{ xpos, ypos + h, 0.0, 0.0 },
-			{ xpos + w, ypos, 1.0, 1.0 },
+			{ xpos,     ypos + h, 0.0, 0.0 },
+			{ xpos,     ypos,     0.0, 1.0 },
+			{ xpos + w, ypos,     1.0, 1.0 },
+			{ xpos,     ypos + h, 0.0, 0.0 },
+			{ xpos + w, ypos,     1.0, 1.0 },
 			{ xpos + w, ypos + h, 1.0, 0.0 }
 		};
 

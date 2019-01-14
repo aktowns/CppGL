@@ -11,9 +11,11 @@
 class Shader final : public Logger {
 	std::filesystem::path _fragmentShader;
 	std::filesystem::path _vertexShader;
+    std::optional<std::filesystem::path> _geometryShader;
 	GLuint _program;
 public:
-    explicit Shader(const std::filesystem::path& vertexShader, const std::filesystem::path& fragmentShader);
+    explicit Shader(std::filesystem::path vertexShader, std::filesystem::path fragmentShader);
+    explicit Shader(std::filesystem::path vertexShader, std::filesystem::path fragmentShader, std::filesystem::path geometryShader);
 	void use() const;
 
 	void setBool(const std::string &name, bool value) const;
@@ -28,4 +30,13 @@ public:
 	{
 		return _program;
 	}
+private:
+    enum ShaderType
+    {
+        Vertex = GL_VERTEX_SHADER, 
+        Fragment = GL_FRAGMENT_SHADER, 
+        Geometry = GL_GEOMETRY_SHADER
+    };
+    GLuint compileShader(ShaderType type, std::filesystem::path shader);
+    void linkProgram(std::vector<GLuint> shaders);
 };

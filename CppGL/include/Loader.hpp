@@ -31,5 +31,11 @@ public:
 
 		return cached->second;
 	}
+
+    void clear()
+	{
+        // TODO: Free
+        _cached.clear();
+	}
 };
 

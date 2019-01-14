@@ -3,68 +3,50 @@
 #include "utils/FmtExtensions.hpp"
 
 #include <fstream>
+#include <utility>
 
 using namespace std;
 
-Shader::Shader(const std::filesystem::path& vertexShader, const std::filesystem::path& fragmentShader)
-    : Logger("shader")
-    , _fragmentShader(fragmentShader)
-    , _vertexShader(vertexShader)
-    , _program(0)
+GLuint Shader::compileShader(ShaderType type, std::filesystem::path shader)
 {
-    console->info("loading vertex shader {}", _vertexShader);
-    auto vertexHandle = glCreateShader(GL_VERTEX_SHADER);
-    auto fragmentHandle = glCreateShader(GL_FRAGMENT_SHADER);
+    console->info("loading shader {}", shader);
+    const auto handle = glCreateShader(type);
 
-    if (!filesystem::exists(_vertexShader))
+    if (!filesystem::exists(shader))
     {
-        console->error("vertex file {} does not exist.", _vertexShader);
+        console->error("file {} does not exist.", shader);
     }
+    assert(filesystem::exists(shader));
 
-    ifstream vertexFile(_vertexShader);
-    string vertexSource((istreambuf_iterator<char>(vertexFile)), (istreambuf_iterator<char>()));
+    ifstream file(shader);
+    string source((istreambuf_iterator<char>(file)), (istreambuf_iterator<char>()));
 
-    auto cVertexSource = vertexSource.c_str();
-    glShaderSource(vertexHandle, 1, &cVertexSource, nullptr);
-    glCompileShader(vertexHandle);
+    auto cSource = source.c_str();
+    glShaderSource(handle, 1, &cSource, nullptr);
+    glCompileShader(handle);
 
-    GLint vertexCompiled;
-    glGetShaderiv(vertexHandle, GL_COMPILE_STATUS, &vertexCompiled);
-    if (vertexCompiled != GL_TRUE) {
+    GLint compiled;
+    glGetShaderiv(handle, GL_COMPILE_STATUS, &compiled);
+    if (compiled != GL_TRUE) {
         GLsizei logLength = 0;
         GLchar message[1024];
-        glGetShaderInfoLog(vertexHandle, 1024, &logLength, message);
+        glGetShaderInfoLog(handle, 1024, &logLength, message);
 
-        console->error("vertex shader compilation failed: {}", string(message));
+        console->error("shader compilation for {} failed: {}", shader, string(message));
     }
+    assert(compiled == GL_TRUE);
 
-    console->info("loading fragment shader {}", _fragmentShader);
+    return handle;
+}
 
-    if (!filesystem::exists(_fragmentShader))
-    {
-        console->error("fragment file {} does not exist.", _fragmentShader);
-    }
-
-    ifstream fragmentFile(_fragmentShader);
-    string fragmentSource((istreambuf_iterator<char>(fragmentFile)), (istreambuf_iterator<char>()));
-
-    auto cFragmentSource = fragmentSource.c_str();
-    glShaderSource(fragmentHandle, 1, &cFragmentSource, nullptr);
-    glCompileShader(fragmentHandle);
-
-    GLint fragmentCompiled;
-    glGetShaderiv(fragmentHandle, GL_COMPILE_STATUS, &fragmentCompiled);
-    if (fragmentCompiled != GL_TRUE) {
-        auto log_length = 0;
-        GLchar message[1024];
-        glGetShaderInfoLog(fragmentHandle, 1024, &log_length, message);
-
-        console->error("fragment shader compilation failed: {}", string(message));
-    }
-
+void Shader::linkProgram(std::vector<GLuint> shaders)
+{
     _program = glCreateProgram();
-    glAttachShader(_program, vertexHandle);
-    glAttachShader(_program, fragmentHandle);
+    for (auto shader : shaders)
+    {
+        glAttachShader(_program, shader);
+        
+    }
     glLinkProgram(_program);
 
     GLint programLinked;
@@ -77,9 +59,41 @@ Shader::Shader(const std::filesystem::path& vertexShader, const std::filesystem:
         console->error("failed to link shader with files {} and {}: {}", _fragmentShader, _vertexShader,
             string(message));
     }
+}
 
-    glDeleteShader(vertexHandle);
-    glDeleteShader(fragmentHandle);
+Shader::Shader(filesystem::path vertexShader, filesystem::path fragmentShader)
+    : Logger("shader")
+    , _fragmentShader(std::move(fragmentShader))
+    , _vertexShader(std::move(vertexShader))
+    , _geometryShader(nullopt)
+    , _program(0)
+{
+    const auto vertex = compileShader(Vertex, _vertexShader);
+    const auto fragment = compileShader(Fragment, _fragmentShader);
+
+    linkProgram({ vertex, fragment });
+
+    glDeleteShader(vertex);
+    glDeleteShader(fragment);
+}
+
+Shader::Shader(std::filesystem::path vertexShader, std::filesystem::path fragmentShader, 
+    std::filesystem::path geometryShader)
+    : Logger("shader")
+    , _fragmentShader(std::move(fragmentShader))
+    , _vertexShader(std::move(vertexShader))
+    , _geometryShader(std::move(geometryShader))
+    , _program(0)
+{
+    const auto vertex = compileShader(Vertex, _vertexShader);
+    const auto fragment = compileShader(Fragment, _fragmentShader);
+    const auto geometry = compileShader(Geometry, _geometryShader.value());
+
+    linkProgram({ vertex, fragment, geometry });
+
+    glDeleteShader(vertex);
+    glDeleteShader(fragment);
+    glDeleteShader(geometry);
 }
 
 void Shader::setBool(const std::string & name, const bool value) const
@@ -123,6 +137,13 @@ optional<Shader*> Shader::fromResource(const Resource& resource, const Console& 
 
 	const auto vertexShader = (base / resource.path()).replace_extension("vert");
 	const auto fragmentShader = (base / resource.path()).replace_extension("frag");
+    const auto geometryShader = (base / resource.path()).replace_extension("geom");
+
+    if (filesystem::exists(geometryShader))
+    {
+        return new Shader(vertexShader, fragmentShader, geometryShader);
+    }
 	
 	return new Shader(vertexShader, fragmentShader);
 }
+
