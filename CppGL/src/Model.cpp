@@ -1,5 +1,6 @@
 #include "Model.hpp"
 #include "utils/FmtExtensions.hpp"
+#include "Config.hpp"
 
 #include <glm/glm.hpp>
 #include <utility>
@@ -191,7 +192,7 @@ vector<MeshTexture> Model::loadMaterialTextures(aiMaterial * mat, const aiTextur
 
 optional<Model*> Model::fromResource(const Resource& resource, const Console& console)
 {
-	const auto fn = filesystem::path("resources") / "models" / resource.path();
+	const auto fn = MODELS_DIR / resource.path();
 	
 	return new Model(fn);
 }

@@ -146,6 +146,7 @@ void Game::setup(GLFWwindow* window)
 	generateIcosphereMesh(5, icosphereIndex, icospherePos);
 	console->info("icosphere has {} indexes and {} vertices", icosphereIndex.size(), icospherePos.size());
 	_physx.initPhysics();
+
 	console->info("Loading models");
 	//auto _model = _modelLoader.load("nanosuit/nanosuit.obj").value();
 	//auto _link = _modelLoader.load("link/link.obj").value();
@@ -410,6 +411,11 @@ void Game::render(GameObject& gameObject)
 
 	glEnable(GL_DEPTH_TEST);
 
+	if (showPhysicsDebug) {
+		drawer->linesFromScene();
+		drawer->draw(_camera);
+	}
+
 	// Use camera object to navigate the scene
 	auto view = _camera.getViewMatrix();
 	auto projection = perspective(radians(_camera.zoom())
@@ -487,8 +493,8 @@ void Game::render(GameObject& gameObject)
     {
        const auto deg = 3.14159 / 180.0;
         
-       pointLightPositions[i].x = initialPointLightPositions[i].x * (2.0f * sin(glfwGetTime() * deg * 20.0));
-       pointLightPositions[i].z = initialPointLightPositions[i].z * (2.0f * cos(glfwGetTime() * deg * 20.0));
+       pointLightPositions[i].x = initialPointLightPositions[i].x * (2.0f * sinf(glfwGetTime() * deg * 20.0));
+       pointLightPositions[i].z = initialPointLightPositions[i].z * (2.0f * cosf(glfwGetTime() * deg * 20.0));
     }
 
     // directional light
@@ -571,7 +577,7 @@ void Game::render(GameObject& gameObject)
 	//_camera.setPosition(vec3ToGlm(cameraBody->getGlobalPose().p));
 
 	for (unsigned int i = 0; i < 15; i++) {
-		PxRigidDynamic* body = bodies[i];
+        auto body = bodies[i];
 		auto pose = body->getGlobalPose().p;
 		auto rota = body->getGlobalPose().q;
 		cubePositions[i] = vec3ToGlm(pose);
@@ -653,11 +659,6 @@ void Game::render(GameObject& gameObject)
 	arial->draw(textShader, "renderer: " + renderer, vec2(25.0f, SCR_HEIGHT - 60.0f), 1.0f, vec3(0.5f, 0.8f, 0.2f));
 	arial->draw(textShader, "version: " + version, vec2(25.0f, SCR_HEIGHT - 75.0f), 1.0f, vec3(0.5f, 0.8f, 0.2f));
 	arial->draw(textShader, "fps: " + to_string(gameObject.frameRate), vec2(25.0f, SCR_HEIGHT - 25.0f), 1.0f, vec3(0.5f, 0.8f, 0.2f));
-
-	if (showPhysicsDebug) {
-		drawer->linesFromScene();
-		drawer->draw(_camera);
-	}
 
 	glDisable(GL_DEPTH_TEST);
 

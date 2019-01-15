@@ -1,4 +1,5 @@
 #include "Shader.hpp"
+#include "Config.hpp"
 #include "utils/Resource.hpp"
 #include "utils/FmtExtensions.hpp"
 
@@ -133,11 +134,9 @@ void Shader::use() const
 
 optional<Shader*> Shader::fromResource(const Resource& resource, const Console& console)
 {
-	const auto base = filesystem::path("resources") / "shaders";
-
-	const auto vertexShader = (base / resource.path()).replace_extension("vert");
-	const auto fragmentShader = (base / resource.path()).replace_extension("frag");
-    const auto geometryShader = (base / resource.path()).replace_extension("geom");
+	const auto vertexShader = (SHADERS_DIR / resource.path()).replace_extension("vert");
+	const auto fragmentShader = (SHADERS_DIR / resource.path()).replace_extension("frag");
+    const auto geometryShader = (SHADERS_DIR / resource.path()).replace_extension("geom");
 
     if (filesystem::exists(geometryShader))
     {

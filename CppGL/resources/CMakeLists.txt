@@ -1,0 +1,70 @@
+set(RESOURCES_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
+set(DEST_DIR "${CMAKE_CURRENT_BINARY_DIR}")
+
+### RESOURCES ###
+
+set(SOURCE_SHADER_DIR  "${RESOURCES_DIR}/shaders")
+set(SOURCE_TEXTURE_DIR "${RESOURCES_DIR}/textures")
+set(SOURCE_MODEL_DIR   "${RESOURCES_DIR}/models")
+set(SOURCE_FONT_DIR    "${RESOURCES_DIR}/fonts")
+set(DEST_SHADER_DIR    "${DEST_DIR}/shaders")
+set(DEST_TEXTURE_DIR   "${DEST_DIR}/textures")
+set(DEST_MODEL_DIR     "${DEST_DIR}/models")
+set(DEST_FONT_DIR      "${DEST_DIR}/fonts")
+
+function(copy TYPE FROM TO)
+    get_filename_component(FFROM ${FROM} ABSOLUTE)
+    if(IS_DIRECTORY ${FFROM})
+        file(GLOB files "${FFROM}/*")
+        foreach(file ${files})
+            get_filename_component(BNAME ${file} NAME)
+            copy(${TYPE} ${file} "${TO}/${BNAME}")
+        endforeach()
+    else()
+	    message("copying " ${TYPE} " from " ${FFROM} " to " ${TO})	
+	    configure_file(${FFROM} ${TO} COPYONLY)
+    endif(IS_DIRECTORY ${FFROM})
+endfunction()
+
+function(copy_resource)
+	set(options MODEL SHADER TEXTURE FONT)
+	set(oneValueArgs SOURCE)
+	set(multiValueArgs SOURCES)
+	cmake_parse_arguments(copy_resource "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})	
+
+	list(APPEND copy_resource_SOURCES "${copy_resource_SOURCE}")
+	foreach(resource ${copy_resource_SOURCES})
+		if(copy_resource_TEXTURE)
+			copy("texture" "${SOURCE_TEXTURE_DIR}/${resource}" "${DEST_TEXTURE_DIR}/${resource}")
+		elseif(copy_resource_SHADER)
+			copy("shader" "${SOURCE_SHADER_DIR}/${resource}" "${DEST_SHADER_DIR}/${resource}")
+		elseif(copy_resource_FONT)
+			copy("font" "${SOURCE_FONT_DIR}/${resource}" "${DEST_FONT_DIR}/${resource}")
+		elseif(copy_resource_MODEL)
+			file(GLOB model_files "${SOURCE_MODEL_DIR}/${resource}/*")
+			foreach(file ${model_files})
+				set(TYPE "model")
+				get_filename_component(filename ${file} NAME)
+				copy("model" "${SOURCE_MODEL_DIR}/${resource}/${filename}" 
+					"${DEST_MODEL_DIR}/${resource}/${filename}")
+			endforeach()
+		else()
+			message (FATAL_ERROR "unhandled copy")
+		endif()
+
+	endforeach()
+endfunction()
+
+copy_resource(SHADER SOURCES "shader.frag" "shader.vert" "model.frag" "model.vert" "text.frag" "text.vert" 
+	"multiple_lights.frag" "multiple_lights.vert" "debugline.frag" "debugline.vert" "lamp.frag" "lamp.vert"
+	"skybox.frag" "skybox.vert" "basic.frag" "basic.vert" "overlay.vert" "overlay.frag" 
+    "overlaytext.vert" "overlaytext.frag")
+copy_resource(TEXTURE SOURCES "awesomeface.png" "container.png" "container2.png" "container2_specular.png" "lamp.png")
+copy_resource(TEXTURE SOURCES "skybox/back.png" "skybox/bottom.png" "skybox/front.png" 
+	"skybox/left.png" "skybox/right.png" "skybox/top.png")
+#copy_resource(MODEL SOURCES "nanosuit")
+#copy_resource(MODEL SOURCES "link")
+#copy_resource(MODEL SOURCES "spacetruck")
+copy_resource(MODEL SOURCES "spaceship")
+copy_resource(FONT SOURCES "arial.ttf")
+copy_resource(FONT SOURCES "neuropolmod.ttf")

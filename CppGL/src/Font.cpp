@@ -1,4 +1,5 @@
 #include "Font.hpp"
+#include "Config.hpp"
 
 #include <ft2build.h>
 #include FT_FREETYPE_H
@@ -10,7 +11,6 @@
 
 using namespace std;
 using namespace glm;
-
 
 Font::Font(filesystem::path path, const unsigned int size)
 	: Logger("font"), _path(std::move(path)), _size(size), _vao(0), _vbo(0)
@@ -120,7 +120,6 @@ void Font::draw(const Shader *shader, string text, vec2 coOrd, const GLfloat sca
 
 optional<Font*> Font::fromResource(const Resource& resource, const Console& console)
 {
-	const auto base = filesystem::path("resources") / "fonts";
 	auto rSize = resource["size"];
 	if (rSize->empty())
 	{
@@ -131,5 +130,5 @@ optional<Font*> Font::fromResource(const Resource& resource, const Console& cons
 
 	const auto size = stoi(resource["size"].value());
 	
-	return new Font(base / resource.path(), size);
+	return new Font(FONTS_DIR/ resource.path(), size);
 }
