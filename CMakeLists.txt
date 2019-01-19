@@ -44,6 +44,7 @@ set(ALL_LIBS
 	PhysXPvdSDK
 	lua
     harfbuzz
+    msdfgen
 )
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")

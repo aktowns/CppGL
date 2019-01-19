@@ -17,6 +17,7 @@ include_directories(
 	${THIRD}/lua/src
     ${THIRD}/entt/src/
     ${THIRD}/harfbuzz/src/
+    ${THIRD}/msdfgen
 	include/
 )
 

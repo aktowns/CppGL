@@ -3,7 +3,7 @@
 #define SCR_WIDTH 1440
 #define SCR_HEIGHT 900
 
-#define DEFAULT_FONT "arial.ttf?size=42"
+#define DEFAULT_FONT "arial.ttf?size=32"
 #define GAME_FONT    "neuropolmod.ttf?size=16"
 
 #define STRINGIFY(x) #x

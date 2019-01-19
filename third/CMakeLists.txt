@@ -159,3 +159,17 @@ add_subdirectory(lua)
 
 ### harfbuzz ### 
 add_subdirectory(harfbuzz)
+
+### msdfgen ### 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+add_definitions(-DMSDFGEN_USE_CPP11)
+file(GLOB_RECURSE msdfgen_SOURCES
+	"msdfgen/core/*.cpp"
+)
+include_directories("msdfgen/include")
+
+add_library(msdfgen ${msdfgen_SOURCES} ${msdfgen_HEADERS})
+target_link_libraries(msdfgen)
+
+
+#add_subdirectory(msdfgen)
