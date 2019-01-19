@@ -7,13 +7,13 @@ typedef std::shared_ptr<spdlog::logger> Console;
 
 class Logger {
 public:
-	virtual ~Logger() = default;
+    virtual ~Logger() = default;
 
-	explicit Logger(const std::string &name) {
-		if ((console = spdlog::get(name)) == nullptr) {
-			console = spdlog::stdout_color_mt(name);
-		}
-	}
+    explicit Logger(const std::string &name) {
+        if ((console = spdlog::get(name)) == nullptr) {
+            console = spdlog::stdout_color_mt(name);
+        }
+    }
 protected:
-	Console console;
+    Console console;
 };

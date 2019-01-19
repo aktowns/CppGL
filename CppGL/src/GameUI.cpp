@@ -226,7 +226,7 @@ void GameUI::newFrame(void)
     _scroll = nk_vec2(0, 0);
 }
 
-void GameUI::drawUI(const GameObject& gameObject, const RenderObject& render, const std::function<void(nk_context*)> f) 
+void GameUI::drawUI(const GameObject& gameObject, const RenderObject& render, const std::function<void(nk_context*)> f)
 {
     newFrame();
     f(&_ctx);

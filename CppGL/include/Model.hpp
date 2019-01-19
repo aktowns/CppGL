@@ -16,18 +16,18 @@ class Model final : public Logger {
     const std::filesystem::path _path;
     bool _gamma;
 public:
-	std::vector<MeshTexture> texturesLoaded;
-	std::vector<Mesh> meshes;
-	bool gammaCorrection;
+    std::vector<MeshTexture> texturesLoaded;
+    std::vector<Mesh> meshes;
+    bool gammaCorrection;
 
     explicit Model(std::filesystem::path path, bool gamma = false);
-	void draw(const Shader* shader);
-  static std::optional<Model*> fromResource(const Resource& resource, const Console& console);
+    void draw(const Shader* shader);
+    static std::optional<Model*> fromResource(const Resource& resource, const Console& console);
 private:
-	void loadModel(std::filesystem::path const &path);
-	void processNode(aiNode *node, const aiScene *scene);
-	Mesh processMesh(aiMesh *mesh, const aiScene *scene);
-	std::vector<MeshTexture> loadMaterialTextures(aiMaterial* mat, aiTextureType type, const std::string& typeName);
-	glm::vec3 _minBounds;
-	glm::vec3 _maxBounds;
+    void loadModel(std::filesystem::path const &path);
+    void processNode(aiNode *node, const aiScene *scene);
+    Mesh processMesh(aiMesh *mesh, const aiScene *scene);
+    std::vector<MeshTexture> loadMaterialTextures(aiMaterial* mat, aiTextureType type, const std::string& typeName);
+    glm::vec3 _minBounds;
+    glm::vec3 _maxBounds;
 };

@@ -81,7 +81,7 @@ void generateIcosphereMesh(size_t lod, std::vector<uint32_t>& indices, std::vect
     newIndices.reserve(256);
 
     std::unordered_map<glm::vec3, uint32_t, Vec3KeyFuncs, Vec3KeyFuncs> vertexLookup;
-    
+
     indices.resize(NUM_ICOSOHEDRON_INDICES);
     for (uint32_t i = 0; i < NUM_ICOSOHEDRON_INDICES; i++) {
         indices[i] = ICOSOHEDRON_INDICES[i];
@@ -115,8 +115,9 @@ void generateIcosphereMesh(size_t lod, std::vector<uint32_t>& indices, std::vect
             auto iter = vertexLookup.find(midPoint12);
             if (iter != vertexLookup.end()) { // It is in the map
                 mp12Index = iter->second;
-            } else { // Not in the map
-                mp12Index = (uint32_t)positions.size();
+            }
+            else { // Not in the map
+                mp12Index = static_cast<uint32_t>(positions.size());
                 positions.push_back(midPoint12);
                 vertexLookup[midPoint12] = mp12Index;
             }
@@ -124,8 +125,9 @@ void generateIcosphereMesh(size_t lod, std::vector<uint32_t>& indices, std::vect
             iter = vertexLookup.find(midPoint23);
             if (iter != vertexLookup.end()) { // It is in the map
                 mp23Index = iter->second;
-            } else { // Not in the map
-                mp23Index = (uint32_t)positions.size();
+            }
+            else { // Not in the map
+                mp23Index = static_cast<uint32_t>(positions.size());
                 positions.push_back(midPoint23);
                 vertexLookup[midPoint23] = mp23Index;
             }
@@ -133,8 +135,9 @@ void generateIcosphereMesh(size_t lod, std::vector<uint32_t>& indices, std::vect
             iter = vertexLookup.find(midPoint13);
             if (iter != vertexLookup.end()) { // It is in the map
                 mp13Index = iter->second;
-            } else { // Not in the map
-                mp13Index = (uint32_t)positions.size();
+            }
+            else { // Not in the map
+                mp13Index = static_cast<uint32_t>(positions.size());
                 positions.push_back(midPoint13);
                 vertexLookup[midPoint13] = mp13Index;
             }

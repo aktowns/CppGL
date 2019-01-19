@@ -11,27 +11,27 @@
 #include <map>
 
 struct Character final {
-	glm::vec2 advance;
-	glm::vec2 size;
-	glm::vec2 bearing;
-	glm::vec2 offset;
+    glm::vec2 advance;
+    glm::vec2 size;
+    glm::vec2 bearing;
+    glm::vec2 offset;
 };
 
 class Font final : public Logger {
-	std::filesystem::path _path;
-	unsigned int _size;
-	std::map<unsigned long, Character> _characters;
-	unsigned int _atlasWidth;
-	unsigned int _atlasHeight;
-	unsigned int _vao, _vbo;
-	GLuint _texture;
+    std::filesystem::path _path;
+    unsigned int _size;
+    std::map<unsigned long, Character> _characters;
+    unsigned int _atlasWidth;
+    unsigned int _atlasHeight;
+    unsigned int _vao, _vbo;
+    GLuint _texture;
 public:
-	Font(std::filesystem::path path, unsigned int size);
+    Font(std::filesystem::path path, unsigned int size);
 
-	void setup();
+    void setup();
 
-	void draw(const Shader *shader, std::string text, glm::vec2 coOrd, GLfloat scale, glm::vec3 color);
+    void draw(const Shader *shader, std::string text, glm::vec2 coOrd, GLfloat scale, glm::vec3 color);
 
-	static std::optional<Font *> fromResource(const Resource &resource, const Console &console);
+    static std::optional<Font *> fromResource(const Resource &resource, const Console &console);
 };
 

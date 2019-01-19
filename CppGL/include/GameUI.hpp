@@ -38,9 +38,9 @@ struct OpenGLContext {
 };
 
 struct glfwVertex {
-     float position[2];
-     float uv[2];
-     nk_byte col[4];
+    float position[2];
+    float uv[2];
+    nk_byte col[4];
 };
 
 class GameUI final : Logger, Renderable
@@ -60,7 +60,7 @@ class GameUI final : Logger, Renderable
     struct nk_vec2 _scroll;
     static GameUI* _trampoline;
 public:
-    explicit GameUI(GLFWwindow* win);    
+    explicit GameUI(GLFWwindow* win);
     void draw(const GameObject& game, const RenderObject& render) override;
 
     void fontStashBegin(struct nk_font_atlas **atlas);
@@ -74,11 +74,11 @@ public:
     void drawUI(const GameObject& game, const RenderObject& render, std::function<void(nk_context*)> f);
 
 private:
-                              static void clipboardCopyTrampoline(nk_handle usr, const char *text, int len);
+    static void clipboardCopyTrampoline(nk_handle usr, const char *text, int len);
     void clipboardCopy(nk_handle usr, const char *text, int len);
     static void clipboardPasteTrampoline(nk_handle usr, struct nk_text_edit *edit);
     void clipboardPaste(nk_handle usr, struct nk_text_edit *edit);
-    
+
     void deviceCreate();
     void deviceDestroy();
     void deviceUploadAtlas(const void *image, const int width, const int height);

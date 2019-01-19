@@ -7,7 +7,7 @@
 
 struct Texture final
 {
-	unsigned int id;
+    unsigned int id;
 };
 
 unsigned int textureFromFile(const std::filesystem::path &filename, bool gamma = false, bool repeat = true, bool flip = true);

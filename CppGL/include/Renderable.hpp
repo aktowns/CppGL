@@ -16,7 +16,7 @@ struct RenderObject final
 {
     glm::mat4 view;
     glm::mat4 proj;
-    RenderObject(const glm::mat4 view, const glm::mat4 proj) : view(view), proj(proj){}
+    RenderObject(const glm::mat4 view, const glm::mat4 proj) : view(view), proj(proj) {}
 };
 
 class Renderable
