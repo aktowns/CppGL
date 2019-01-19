@@ -99,9 +99,9 @@ int main()
     auto window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "GLRender", nullptr, nullptr);
     if (window == nullptr)
     {
-        console->warn("OpenGL 4.6 not supported, falling back to 3.3");
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+        console->warn("OpenGL 4.6 not supported, falling back to 4.2");
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
         window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "GLRender", nullptr, nullptr);
     }
     if (window == nullptr) {
