@@ -89,12 +89,18 @@ Bitmapped msdfg(FT_Face& face, FT_ULong chr)
     ftFunctions.shift = 0;
     ftFunctions.delta = 0;
     FT_Outline_Decompose(&face->glyph->outline, &ftFunctions, &context);
-
     shape.normalize();
 
     msdfgen::edgeColoringSimple(shape, 3.0);
     msdfgen::Bitmap<msdfgen::FloatRGB> msdf(32, 32);
-    msdfgen::generateMSDF(msdf, shape, 4.0, 1.0, msdfgen::Vector2(4.0, 4.0));
+
+    double left = 0, bottom = 0, right = 0, top = 0;
+    shape.bounds(left, bottom, right, top);
+    msdfgen::Vector2 frame(32, 32);
+    msdfgen::Vector2 dims(right - left, top - bottom);
+    msdfgen::Vector2 translate = 0.5*(frame / msdfgen::Vector2(1.0, 1.0)) - msdfgen::Vector2(left, bottom);
+
+    msdfgen::generateMSDF(msdf, shape, 4.0, 1.0, translate);
 
     vector<uint8_t> res{};
     for (auto y = 0; y < msdf.width(); ++y)
@@ -136,6 +142,7 @@ void Font::setup()
     unsigned int rowh = 0;
 
     // Get the atlas size height of highest glyph and width of all the glyphs
+    /*
     auto c = FT_Get_First_Char(face, &index);
     while (index) {
         if (FT_Load_Char(face, c, FT_LOAD_DEFAULT)) {
@@ -159,20 +166,35 @@ void Font::setup()
     }
     _atlasWidth = std::max(_atlasWidth, rowh);
     _atlasHeight += rowh;
+    */
 
-    console->debug("created texture {} by {}", _atlasWidth, _atlasHeight);
+    //console->debug("created texture {} by {}", _atlasWidth, _atlasHeight);
 
     // Build the atlas
     // Sanity check the font atlas we're creating is less than the maximum texture size we can use.
     //GLint maxTextureSize;
     //glGetIntegerv(GL_MAX_TEXTURE_SIZE, &maxTextureSize); 
     //assert((_atlasWidth * _atlasHeight) < static_cast<unsigned int>(maxTextureSize));
+    auto c = FT_Get_First_Char(face, &index);
+    auto count = 0;
+    while (index) {
+        if (!FT_Load_Char(face, c, FT_LOAD_DEFAULT)) {
+            if (IS_BASIC_LAT(c) || IS_PRIV(c)) {
+                count++;
+            }
+        }
+        c = FT_Get_Next_Char(face, c, &index);
+    }
+    GLint maxLayers;
+    glGetIntegerv(GL_MAX_ARRAY_TEXTURE_LAYERS, &maxLayers);
+    assert(count < maxLayers);
 
-    glActiveTexture(GL_TEXTURE0);
     glGenTextures(1, &_texture);
-    glBindTexture(GL_TEXTURE_2D, _texture);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, _texture);
+    glActiveTexture(GL_TEXTURE0);
 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, _atlasWidth, _atlasHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
+    glTexStorage3D(GL_TEXTURE_2D_ARRAY, 1, GL_RGB8, 32, 32, count);
+    //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, _atlasWidth, _atlasHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
 
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
@@ -194,17 +216,22 @@ void Font::setup()
         }
         if (IS_BASIC_LAT(c) || IS_PRIV(c)) {
             auto m = msdfg(face, c);
+            /*
             if (x + m.width + PADDING >= WIDTH)
             {
                 y += rowh;
                 rowh = 0;
                 x = 0;
             }
+            */
             //glTexSubImage2D(GL_TEXTURE_2D, 0, x, y, face->glyph->bitmap.width, face->glyph->bitmap.rows, GL_RGB,
             //    GL_UNSIGNED_BYTE, face->glyph->bitmap.buffer);
             //glTexSubImage2D(GL_TEXTURE_2D, 0, x, y, face->glyph->bitmap.width, face->glyph->bitmap.rows, GL_RGB,
             //    GL_UNSIGNED_BYTE, &m.bitmap[0]);
-            glTexSubImage2D(GL_TEXTURE_2D, 0, x, y, m.width, m.height, GL_RGB,
+            //glTexSubImage2D(GL_TEXTURE_2D, 0, x, y, m.width, m.height, GL_RGB,
+            //    GL_UNSIGNED_BYTE, &m.bitmap[0]);
+            console->debug("uploading texture {}/{} w={} h={}", x, count, m.width, m.height);
+            glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, x, m.width, m.height, 1, GL_RGB, 
                 GL_UNSIGNED_BYTE, &m.bitmap[0]);
 
             Character chr{};
@@ -221,7 +248,8 @@ void Font::setup()
             _characters.insert(pair<unsigned long, Character>(c, chr));
 
             rowh = std::max(rowh, m.height);
-            x += m.width + PADDING; //face->glyph->bitmap.width + PADDING;
+            //x += m.width + PADDING; //face->glyph->bitmap.width + PADDING;
+            x++;
         }
         c = FT_Get_Next_Char(face, c, &index);
     }
