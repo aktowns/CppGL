@@ -33,7 +33,7 @@ class Game final : public Logger {
 	Loader<Model> _modelLoader;
 	Loader<Texture> _textureLoader;
 	PhysXSetup _physx{};
-    Skybox _skybox;
+    //Skybox _skybox;
     GameUI* _ui;
 public:
 	Game();

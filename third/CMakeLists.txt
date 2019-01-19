@@ -17,10 +17,10 @@ set(BUILD_STATIC_LIB ON)
 set(PHYSX_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/PhysX/physx" CACHE STRING "" FORCE)
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
-tset(TARGET_BUILD_PLATFORM "windows" STRING)
-tset(CMAKE_PREFIX_PATH "${PHYSX_ROOT_DIR}/../externals/cmakemodules;${PHYSX_ROOT_DIR}/../externals/targa" STRING)
-add_definitions(/wd5045 /wd4464 /wd4365 /wd5038 /wd5039 /wd4571 /wd4668 /wd4626 /wd4625
- /wd5026 /wd5027 /wd4191) # Disable spectre warning
+  tset(TARGET_BUILD_PLATFORM "windows" STRING)
+  tset(CMAKE_PREFIX_PATH "${PHYSX_ROOT_DIR}/../externals/cmakemodules;${PHYSX_ROOT_DIR}/../externals/targa" STRING)
+  add_definitions(/wd5045 /wd4464 /wd4365 /wd5038 /wd5039 /wd4571 /wd4668 /wd4626 /wd4625
+                  /wd5026 /wd5027 /wd4191) # Disable spectre warning
 set(PX_GENERATE_STATIC_LIBRARIES OFF CACHE BOOL "" FORCE)
 endif(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
 if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
@@ -38,8 +38,12 @@ endif(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 #tset(CMAKE_INSTALL_PREFIX "${PHYSX_ROOT_DIR}/install/vc15win64/PhysX" STRING)
 
 set(PX_OUTPUT_ARCH "x86" CACHE STRING "" FORCE)
-set(PX_OUTPUT_LIB_DIR "${CMAKE_INSTALL_PREFIX}" CACHE STRING "" FORCE)
-set(PX_OUTPUT_BIN_DIR "${CMAKE_INSTALL_PREFIX}" CACHE STRING "" FORCE)
+#set(PX_OUTPUT_LIB_DIR "${CMAKE_BINARY_DIR}/install" CACHE STRING "" FORCE)
+#set(PX_OUTPUT_BIN_DIR "${CMAKE_BINARY_DIR}/install" CACHE STRING "" FORCE)
+set(PX_OUTPUT_LIB_DIR "${CMAKE_BINARY_DIR}" CACHE INTERNAL "" FORCE)
+set(PX_OUTPUT_BIN_DIR "${CMAKE_BINARY_DIR}" CACHE INTERNAL "" FORCE)
+set(PX_ROOT_LIB_DIR "CppGL" CACHE STRING "" FORCE)
+set(PX_ROOT_EXE_DIR "CppGL" CACHE STRING "" FORCE)
 #set(PX_OUTPUT_LIB_DIR "${PHYSX_ROOT_DIR}" CACHE STRING "" FORCE)
 #set(PX_OUTPUT_BIN_DIR "${PHYSX_ROOT_DIR}" CACHE STRING "" FORCE)
 set(PX_BUILDSNIPPETS OFF CACHE BOOL "" FORCE)
@@ -60,6 +64,14 @@ add_subdirectory(PhysX/physx/compiler/public)
 rset(TARGET_BUILD_PLATFORM STRING)
 rset(CMAKE_PREFIX_PATH STRING)
 #rset(CMAKE_INSTALL_PREFIX STRING)
+
+# Copy dlls over.. i couldn't figure out an override
+file(GLOB physxfiles "${PX_EXE_OUTPUT_DIRECTORY_DEBUG}/*")
+foreach(file ${physxfiles})
+    get_filename_component(BNAME ${file} NAME)
+    message("Copying DLL ${file} to ${CMAKE_BINARY_DIR}/CppGL/${BNAME}")
+    configure_file(${file} "${CMAKE_BINARY_DIR}/CppGL/${BNAME}" COPYONLY)
+endforeach()
 
 add_definitions(
 	-DTW_STATIC
@@ -144,3 +156,6 @@ add_subdirectory(fmt)
 
 ### lua ### 
 add_subdirectory(lua)
+
+### harfbuzz ### 
+add_subdirectory(harfbuzz)

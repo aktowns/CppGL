@@ -16,6 +16,7 @@ include_directories(
 	${THIRD}/PhysX/pxshared/include/
 	${THIRD}/lua/src
     ${THIRD}/entt/src/
+    ${THIRD}/harfbuzz/src/
 	include/
 )
 
@@ -60,15 +61,14 @@ set(SRCS
 	"src_boilerplate/stb_image.cpp"
 )
 
-
 # Add source to this project's executable.
 #add_definitions(-D_DEBUG)
 string(TOLOWER ${CMAKE_BUILD_TYPE} LOWERCASE_CMAKE_BUILD_TYPE)
 if(LOWERCASE_CMAKE_BUILD_TYPE STREQUAL "debug") 
-set(RESOURCES_DIR "${CMAKE_CURRENT_SOURCE_DIR}/resources")
-add_definitions(-DRESOURCES_DIR=${RESOURCES_DIR})
+    set(RESOURCES_DIR "${CMAKE_CURRENT_SOURCE_DIR}/resources")
+    add_definitions(-DRESOURCES_DIR=${RESOURCES_DIR})
 else()
-add_subdirectory(resources)
+    add_subdirectory(resources)
 endif()
 
 add_executable (CppGL ${SRCS} ${HEADERS})

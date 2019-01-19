@@ -1,5 +1,6 @@
 #include "Texture.hpp"
 #include "Loader.hpp"
+#include "Config.hpp"
 
 #include <glad/glad.h>
 #include <stb_image.h>
@@ -55,7 +56,8 @@ unsigned int textureFromFile(const filesystem::path &filename, bool gamma, bool 
 
 optional<Texture*> textureFromResource(const Resource& resource, const Console& console)
 {
-	const auto fn = filesystem::path("resources") / "textures" / resource.path();
+
+	const auto fn = TEXTURES_DIR / resource.path();
 
 	auto rRepeat = resource["repeat"];
     auto repeat = true;

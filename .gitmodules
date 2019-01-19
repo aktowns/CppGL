@@ -31,3 +31,9 @@
 [submodule "third/entt"]
 	path = third/entt
 	url = https://github.com/skypjack/entt.git
+[submodule "third/harfbuzz"]
+	path = third/harfbuzz
+	url = https://github.com/harfbuzz/harfbuzz.git
+[submodule "third/msdfgen"]
+	path = third/msdfgen
+	url = https://github.com/Chlumsky/msdfgen.git

@@ -43,6 +43,7 @@ set(ALL_LIBS
 	PhysXVehicle
 	PhysXPvdSDK
 	lua
+    harfbuzz
 )
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
